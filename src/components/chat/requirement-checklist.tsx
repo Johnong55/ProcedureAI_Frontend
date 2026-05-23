@@ -7,7 +7,13 @@ export function RequirementChecklist({ source }: { source: Source }) {
   const heading = m.case_group
     ? `Hồ sơ cần nộp — ${m.case_group}`
     : "Hồ sơ cần nộp";
-  const items =
+  type Item = {
+    name: string;
+    quantity_original?: number;
+    quantity_copy?: number;
+    form_ref?: string;
+  };
+  const items: Item[] =
     m.items && m.items.length > 0
       ? m.items
       : (source.content || source.content_preview)
