@@ -24,6 +24,10 @@ export const sessionStore = {
   get(id: string): ChatSession | undefined {
     return read().find((s) => s.id === id);
   },
+  /** Xoá sạch localStorage sessions — dùng khi logout/login để chống leak data giữa user. */
+  clear() {
+    write([]);
+  },
   upsert(session: ChatSession) {
     const list = read().filter((s) => s.id !== session.id);
     list.push(session);

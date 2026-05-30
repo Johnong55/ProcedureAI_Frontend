@@ -1,6 +1,7 @@
 import { memo } from "react";
-import { User2, Sparkles, AlertTriangle, Timer } from "lucide-react";
-import type { ChatMessage, Source } from "@/lib/types";
+import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText } from "lucide-react";
+import type { ChatMessage, FormItem, Source } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import { FormDownloadCard } from "./form-card";
 import { StepCard } from "./step-card";
 import { FeeBadge } from "./fee-badge";
@@ -8,6 +9,7 @@ import { RequirementChecklist } from "./requirement-checklist";
 import { ResultCard } from "./result-card";
 import { LegalCitation } from "./legal-citation";
 import { SourcesFooter } from "./sources-footer";
+import { FeedbackButtons } from "./feedback-buttons";
 
 function renderMarkdownLite(text: string) {
   // Very light markdown: split paragraphs, support **bold** and *italic*
@@ -61,11 +63,29 @@ export const AssistantMessage = memo(function AssistantMessage({
 }: {
   msg: ChatMessage;
 }) {
+  // Chỉ render các chunk_type CÓ GIÁ TRỊ HIỂN THỊ THÊM ngoài text:
+  // - "form": có link tải biểu mẫu
+  // - "fee": highlight số tiền/thời gian
+  // - "step": visual numbered card
+  // - "legal_basis": collapsible căn cứ pháp lý
+  // - "result": icon kết quả
+  // KHÔNG render "requirement" và "general" — LLM đã tổng hợp đẹp trong text,
+  // render thêm chỉ gây duplicate + xấu (content_preview bị cắt giữa câu).
   const richChunks = (msg.sources ?? []).filter((s) =>
-    ["form", "step", "fee", "requirement", "result", "legal_basis"].includes(
-      s.chunk_type,
-    ),
+    ["form", "step", "fee", "result", "legal_basis"].includes(s.chunk_type),
   );
+
+  // Dedupe theo procedure_code + chunk_type — tránh hiện 2 cards cùng loại
+  // (vd: 2 STEP cards của cùng procedure → chỉ giữ cái score cao hơn).
+  const seen = new Set<string>();
+  const uniqueChunks = richChunks
+    .sort((a, b) => b.score - a.score)
+    .filter((s) => {
+      const key = `${s.procedure_code}::${s.chunk_type}::${s.metadata?.case_group ?? ""}::${s.metadata?.step_order ?? ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
   return (
     <div className="flex gap-3">
@@ -88,9 +108,13 @@ export const AssistantMessage = memo(function AssistantMessage({
           dangerouslySetInnerHTML={{ __html: renderMarkdownLite(msg.content) }}
         />
 
-        {richChunks.length > 0 && (
+        {msg.forms && msg.forms.length > 0 && (
+          <FormsList forms={msg.forms} />
+        )}
+
+        {uniqueChunks.length > 0 && (
           <div className="mt-4 space-y-3">
-            {richChunks.map((s, i) => (
+            {uniqueChunks.map((s, i) => (
               <ChunkCard key={i} source={s} />
             ))}
           </div>
@@ -103,6 +127,13 @@ export const AssistantMessage = memo(function AssistantMessage({
           </div>
         )}
 
+        {!msg.is_fallback && (
+          <FeedbackButtons
+            messageId={msg.id}
+            backendMessageId={msg.backend_message_id}
+          />
+        )}
+
         <SourcesFooter sources={msg.sources ?? []} />
 
         <p className="mt-3 text-[11px] italic text-muted-foreground">
@@ -112,6 +143,52 @@ export const AssistantMessage = memo(function AssistantMessage({
     </div>
   );
 });
+
+function FormsList({ forms }: { forms: FormItem[] }) {
+  // Dedupe theo url
+  const seen = new Set<string>();
+  const unique = forms.filter((f) => {
+    if (seen.has(f.url)) return false;
+    seen.add(f.url);
+    return true;
+  });
+  if (unique.length === 0) return null;
+
+  return (
+    <div className="mt-4 space-y-2">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <FileText className="h-3.5 w-3.5" /> Biểu mẫu tải về ({unique.length})
+      </div>
+      {unique.map((f, i) => (
+        <div
+          key={i}
+          className="flex items-center justify-between gap-3 rounded-lg border-2 border-primary/15 bg-card p-3 shadow-sm"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium text-foreground">
+                {f.name}
+              </div>
+              {f.form_name && (
+                <div className="truncate text-xs text-muted-foreground">
+                  {f.form_name}
+                </div>
+              )}
+            </div>
+          </div>
+          <Button asChild size="sm" className="shrink-0 gap-1.5">
+            <a href={f.url} target="_blank" rel="noreferrer">
+              <FileDown className="h-4 w-4" /> Tải về
+            </a>
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function TypingIndicator() {
   return (

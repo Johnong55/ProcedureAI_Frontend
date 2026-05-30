@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, FileText, ShieldCheck } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Plus, MessageSquare, Trash2, FileText, ShieldCheck, LogIn, Sparkles, Cloud, HardDrive, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -15,30 +16,39 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { sessionStore, groupByDate } from "@/lib/sessions";
-import type { ChatSession } from "@/lib/types";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
+import { useSessionList } from "@/hooks/use-sessions";
 
 export function AppSidebar() {
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const { isAuthenticated, hydrated } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const refresh = () => setSessions(sessionStore.list());
-    refresh();
-    window.addEventListener("hosoai-sessions-changed", refresh);
-    window.addEventListener("storage", refresh);
-    return () => {
-      window.removeEventListener("hosoai-sessions-changed", refresh);
-      window.removeEventListener("storage", refresh);
-    };
-  }, []);
-
+  // Sessions tự động switch source theo auth state
+  const { sessions, loading, isAuthMode } = useSessionList();
   const groups = groupByDate(sessions);
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    sessionStore.remove(id);
+
+    if (isAuthMode) {
+      // Logged in → delete trên backend (soft delete)
+      try {
+        await api.chat.deleteSession(id);
+        queryClient.invalidateQueries({ queryKey: ["chat", "sessions"] });
+        toast.success("Đã xoá cuộc trò chuyện");
+      } catch (err) {
+        toast.error("Không xoá được", {
+          description: err instanceof Error ? err.message : "Lỗi không xác định",
+        });
+      }
+    } else {
+      // Guest → xoá localStorage
+      sessionStore.remove(id);
+    }
   };
 
   return (
@@ -66,9 +76,34 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {sessions.length === 0 && (
+        {/* Indicator nguồn lưu trữ */}
+        {hydrated && (
+          <div className="mx-2 mb-1 mt-2 flex items-center gap-1.5 rounded-md bg-muted/40 px-2 py-1 text-[10px] text-muted-foreground">
+            {isAuthMode ? (
+              <>
+                <Cloud className="h-3 w-3 text-primary" />
+                Đồng bộ trên cloud
+              </>
+            ) : (
+              <>
+                <HardDrive className="h-3 w-3" />
+                Lưu trên thiết bị này
+              </>
+            )}
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {!loading && sessions.length === 0 && (
           <div className="px-4 py-8 text-center text-xs text-muted-foreground">
-            Chưa có cuộc trò chuyện nào.
+            {isAuthMode
+              ? "Chưa có cuộc trò chuyện nào trên tài khoản này."
+              : "Chưa có cuộc trò chuyện nào."}
             <br />
             Hãy bắt đầu hỏi một câu!
           </div>
@@ -112,6 +147,24 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t">
+        {/* Chỉ render CTA SAU KHI hydrate xong — tránh SSR mismatch */}
+        {hydrated && !isAuthenticated && (
+          <div className="m-2 rounded-lg bg-primary/5 p-3">
+            <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Đăng nhập để mở khoá
+            </div>
+            <p className="mb-2 text-[11px] leading-snug text-muted-foreground">
+              Lưu lịch sử trên cloud, đồng bộ giữa các thiết bị, đánh dấu thủ tục
+              yêu thích.
+            </p>
+            <Button asChild size="sm" className="h-8 w-full gap-1.5 text-xs">
+              <Link to="/login">
+                <LogIn className="h-3.5 w-3.5" /> Đăng nhập / Đăng ký
+              </Link>
+            </Button>
+          </div>
+        )}
         <div className="flex items-start gap-2 px-2 py-2 text-[11px] text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <span>

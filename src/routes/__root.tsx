@@ -11,6 +11,8 @@ import appCss from "../styles.css?url";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/lib/auth";
+import { UserMenu } from "@/components/user-menu";
 
 function NotFoundComponent() {
   return (
@@ -110,23 +112,27 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <div className="flex h-screen w-full overflow-hidden bg-background">
-          <AppSidebar />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-card/60 px-2 backdrop-blur">
-              <SidebarTrigger />
-              <span className="text-xs text-muted-foreground">
-                Lưu ý: AI tham khảo, không thay thế tư vấn pháp lý chính thức
-              </span>
-            </header>
-            <main className="min-h-0 flex-1">
-              <Outlet />
-            </main>
+      <AuthProvider>
+        <SidebarProvider>
+          <div className="flex h-screen w-full overflow-hidden bg-background">
+            <AppSidebar />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-card/60 px-2 backdrop-blur">
+                <SidebarTrigger />
+                <span className="hidden flex-1 text-xs text-muted-foreground sm:inline">
+                  Lưu ý: AI tham khảo, không thay thế tư vấn pháp lý chính thức
+                </span>
+                <span className="flex-1 text-xs text-muted-foreground sm:hidden" />
+                <UserMenu />
+              </header>
+              <main className="min-h-0 flex-1">
+                <Outlet />
+              </main>
+            </div>
           </div>
-        </div>
-        <Toaster richColors position="top-center" />
-      </SidebarProvider>
+          <Toaster richColors position="top-center" />
+        </SidebarProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

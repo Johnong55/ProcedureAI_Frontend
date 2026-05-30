@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { askQuestion } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { sessionStore } from "@/lib/sessions";
 import type { ChatMessage, ChatSession } from "@/lib/types";
 import { AssistantMessage, TypingIndicator, UserMessage } from "./messages";
@@ -17,14 +19,30 @@ export function ChatSurface({
   initialSession?: ChatSession;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
   const [session, setSession] = useState<ChatSession | undefined>(initialSession);
   const [loading, setLoading] = useState(false);
   const [prefill, setPrefill] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Re-sync khi initialSession (props) thay đổi
   useEffect(() => {
     setSession(initialSession);
-  }, [initialSession?.id]);
+  }, [initialSession]);
+
+  // Listen localStorage changes (cho guest mode)
+  useEffect(() => {
+    if (isAuthenticated) return; // logged-in dùng backend, không listen localStorage
+    const refresh = () => {
+      const targetId = sessionId || session?.id;
+      if (!targetId) return;
+      const fresh = sessionStore.get(targetId);
+      if (fresh) setSession(fresh);
+    };
+    window.addEventListener("hosoai-sessions-changed", refresh);
+    return () => window.removeEventListener("hosoai-sessions-changed", refresh);
+  }, [sessionId, session?.id, isAuthenticated]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -36,7 +54,6 @@ export function ChatSurface({
   const send = useCallback(
     async (text: string) => {
       const isNew = !session;
-      const sid = session?.id ?? crypto.randomUUID();
 
       const userMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -44,6 +61,70 @@ export function ChatSurface({
         content: text,
         ts: Date.now(),
       };
+
+      // ─── Phân nhánh theo auth state ──────────────────────────────────
+      if (isAuthenticated) {
+        // LOGGED-IN MODE: Backend là source of truth, không lưu localStorage.
+        // Session_id = backend session id (lưu trong session.backend_session_id
+        // hoặc undefined nếu là session mới).
+        const backendSessionId = session?.backend_session_id;
+
+        // Optimistic update: thêm user message vào UI ngay
+        const optimisticSession: ChatSession = session
+          ? { ...session, messages: [...session.messages, userMsg], updatedAt: Date.now() }
+          : {
+              id: crypto.randomUUID(),
+              title: text.slice(0, 50),
+              messages: [userMsg],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            };
+        setSession(optimisticSession);
+
+        setLoading(true);
+        const t0 = performance.now();
+        try {
+          const res = await api.chat.ask({
+            question: text,
+            session_id: backendSessionId,
+          });
+          const assistantMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: res.answer,
+            sources: res.sources,
+            forms: res.forms,
+            is_fallback: res.is_fallback,
+            latency_ms: res.latency_ms ?? performance.now() - t0,
+            ts: Date.now(),
+            backend_message_id: res.message_id,
+          };
+          // Update local state với assistant message + backend_session_id
+          setSession({
+            ...optimisticSession,
+            id: res.session_id, // đồng bộ id với backend
+            messages: [...optimisticSession.messages, assistantMsg],
+            backend_session_id: res.session_id,
+            updatedAt: Date.now(),
+          });
+          // Invalidate sidebar list để hiện session mới
+          queryClient.invalidateQueries({ queryKey: ["chat", "sessions"] });
+
+          // Nếu session mới → navigate sang URL theo backend_session_id
+          if (isNew) {
+            navigate({ to: "/c/$sessionId", params: { sessionId: res.session_id } });
+          }
+        } catch (e) {
+          const err = e instanceof Error ? e.message : String(e);
+          toast.error("Không gửi được câu hỏi", { description: err });
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // ─── GUEST MODE: lưu localStorage, KHÔNG persist BE ──────────────
+      const sid = session?.id ?? crypto.randomUUID();
 
       const next = sessionStore.appendMessage(sid, userMsg, {
         locality: session?.locality,
@@ -58,38 +139,56 @@ export function ChatSurface({
       setLoading(true);
       const t0 = performance.now();
       try {
-        const res = await askQuestion({
+        // BE không lưu session guest nữa → gửi lịch sử inline (trừ message vừa thêm)
+        // để rewrite_query hiểu được câu follow-up.
+        const history = next.messages
+          .slice(0, -1) // bỏ user message mới (BE sẽ thấy qua field question)
+          .slice(-6) // cap 6 lượt gần nhất
+          .map((m) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          }));
+        const res = await api.chat.ask({
           question: text,
-          session_id: sid,
           locality: next.locality,
           domain: next.domain,
+          history,
         });
         const assistantMsg: ChatMessage = {
           id: crypto.randomUUID(),
           role: "assistant",
           content: res.answer,
           sources: res.sources,
+          forms: res.forms,
           is_fallback: res.is_fallback,
           latency_ms: res.latency_ms ?? performance.now() - t0,
           ts: Date.now(),
+          backend_message_id: res.message_id,
         };
-        const after = sessionStore.appendMessage(sid, assistantMsg);
+        const after = sessionStore.appendMessage(sid, assistantMsg, {
+          backend_session_id: res.session_id,
+        });
         setSession({ ...after });
       } catch (e) {
         const err = e instanceof Error ? e.message : String(e);
-        toast.error("Không kết nối được API", {
-          description: `Hệ thống đang quá tải hoặc backend (localhost:8000) chưa chạy. ${err}`,
-        });
+        toast.error("Không gửi được câu hỏi", { description: err });
       } finally {
         setLoading(false);
       }
     },
-    [session, navigate],
+    [session, navigate, isAuthenticated, queryClient],
   );
 
   const updateFilters = (patch: { locality?: string; domain?: string }) => {
+    // Filters chỉ áp dụng cho guest mode (logged-in dùng filter từ backend session)
+    if (isAuthenticated) {
+      // Update in-memory chỉ, sẽ apply ở câu hỏi tiếp theo
+      if (session) {
+        setSession({ ...session, ...patch });
+      }
+      return;
+    }
     if (!session) {
-      // create empty session just to hold the filter
       const s = sessionStore.createNew();
       Object.assign(s, patch);
       sessionStore.upsert(s);
