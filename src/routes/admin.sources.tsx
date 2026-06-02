@@ -68,7 +68,11 @@ function AdminSources() {
   const { data: sources, isLoading: sourcesLoading } = useQuery({
     queryKey: ["admin", "sources"],
     queryFn: () => api.admin.listSources(),
-    refetchInterval: 5000, // poll để cập nhật trạng thái crawl
+    // Chỉ poll khi có source đang chạy → tránh đập backend khi tab mở idle.
+    // (q.state.data có giá trị từ previous fetch để callback đọc.)
+    refetchInterval: (q) =>
+      q.state.data?.some((s) => s.crawl_status === "crawling") ? 5000 : false,
+    refetchOnWindowFocus: false,
   });
 
   // ── Mutations ─────────────────────────────────────────────────────────────────
