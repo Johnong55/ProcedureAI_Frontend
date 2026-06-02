@@ -241,6 +241,21 @@ export interface CrawlByCodeResponse {
   message: string;
 }
 
+export interface SourceProcedureItem {
+  code: string;
+  name: string;
+  domain?: string | null;
+  chunk_count: number;
+  updated_at?: string | null;
+}
+
+export interface SourceProceduresResponse {
+  items: SourceProcedureItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export interface RAGStats {
   total_procedures: number;
   total_chunks: number;

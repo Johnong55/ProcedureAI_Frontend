@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   RefreshCw,
@@ -14,6 +14,9 @@ import {
   Search,
   Building2,
   FileSearch,
+  ChevronRight,
+  ChevronDown,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -44,6 +47,16 @@ function AdminSources() {
   const queryClient = useQueryClient();
   const [agencyQuery, setAgencyQuery] = useState("");
   const [procCode, setProcCode] = useState("");
+  // Set source_id đang được expand inline để xem preview procedures
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   // ── Queries ─────────────────────────────────────────────────────────────────
   const agenciesQuery = useQuery({
@@ -292,63 +305,168 @@ function AdminSources() {
                   </TableCell>
                 </TableRow>
               )}
-              {sources?.map((s) => (
-                <TableRow key={s.id} className={!s.is_active ? "opacity-50" : ""}>
-                  <TableCell className="max-w-[280px]">
-                    <div className="truncate font-medium">{s.title}</div>
-                    {s.error_message && (
-                      <p className="mt-1 truncate text-xs text-destructive">
-                        ⚠ {s.error_message}
-                      </p>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{s.source_type}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <CrawlStatusBadge status={s.crawl_status} />
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {formatDateTime(s.last_crawled_at)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-1.5"
-                        disabled={
-                          s.crawl_status === "crawling" ||
-                          triggerMutation.isPending ||
-                          !s.is_active
-                        }
-                        onClick={() => triggerMutation.mutate(s.id)}
-                        title="Crawl lại"
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      </Button>
-                      {s.is_active && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => {
-                            if (confirm("Vô hiệu hoá nguồn này?")) {
-                              deleteMutation.mutate(s.id);
-                            }
-                          }}
+              {sources?.map((s) => {
+                const isOpen = expanded.has(s.id);
+                return (
+                  <>
+                    <TableRow key={s.id} className={!s.is_active ? "opacity-50" : ""}>
+                      <TableCell className="max-w-[280px]">
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(s.id)}
+                          className="flex w-full items-center gap-1.5 text-left hover:text-primary"
+                          title={isOpen ? "Thu gọn" : "Xem thủ tục con"}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                          {isOpen ? (
+                            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          )}
+                          <span className="truncate font-medium">{s.title}</span>
+                        </button>
+                        {s.error_message && (
+                          <p className="mt-1 truncate pl-5 text-xs text-destructive">
+                            ⚠ {s.error_message}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{s.source_type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <CrawlStatusBadge status={s.crawl_status} />
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatDateTime(s.last_crawled_at)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1.5"
+                            disabled={
+                              s.crawl_status === "crawling" ||
+                              triggerMutation.isPending ||
+                              !s.is_active
+                            }
+                            onClick={() => triggerMutation.mutate(s.id)}
+                            title="Crawl lại"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          </Button>
+                          {s.is_active && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => {
+                                if (confirm("Vô hiệu hoá nguồn này?")) {
+                                  deleteMutation.mutate(s.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {isOpen && (
+                      <TableRow className="bg-muted/30">
+                        <TableCell colSpan={5} className="p-0">
+                          <SourceProceduresPreview sourceId={s.id} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function SourceProceduresPreview({ sourceId }: { sourceId: string }) {
+  const PREVIEW_LIMIT = 5;
+  const q = useQuery({
+    queryKey: ["admin", "source-procedures", sourceId, PREVIEW_LIMIT],
+    queryFn: () => api.admin.listSourceProcedures(sourceId, 1, PREVIEW_LIMIT),
+    staleTime: 30_000,
+  });
+
+  if (q.isLoading) {
+    return (
+      <div className="flex items-center gap-2 px-6 py-4 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Đang tải thủ tục…
+      </div>
+    );
+  }
+  if (q.isError) {
+    return (
+      <p className="px-6 py-4 text-sm text-destructive">Không tải được danh sách thủ tục.</p>
+    );
+  }
+  const data = q.data;
+  if (!data || data.total === 0) {
+    return (
+      <p className="px-6 py-4 text-sm text-muted-foreground">
+        Chưa có thủ tục nào trong nguồn này. Bấm Crawl để bắt đầu.
+      </p>
+    );
+  }
+
+  return (
+    <div className="px-6 py-3">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground">
+          {data.total} thủ tục · hiển thị {data.items.length} mới nhất
+        </p>
+        {data.total > PREVIEW_LIMIT && (
+          <Link
+            to="/admin/sources/$sourceId"
+            params={{ sourceId }}
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            Xem tất cả {data.total} thủ tục <ArrowRight className="h-3 w-3" />
+          </Link>
+        )}
+      </div>
+      <div className="overflow-hidden rounded-md border bg-background">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="h-8 w-[110px] text-xs">Mã</TableHead>
+              <TableHead className="h-8 text-xs">Tên thủ tục</TableHead>
+              <TableHead className="h-8 w-[160px] text-xs">Lĩnh vực</TableHead>
+              <TableHead className="h-8 w-[80px] text-right text-xs">Chunks</TableHead>
+              <TableHead className="h-8 w-[120px] text-xs">Cập nhật</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.items.map((p) => (
+              <TableRow key={p.code}>
+                <TableCell className="font-mono text-xs">{p.code}</TableCell>
+                <TableCell className="max-w-[400px] truncate text-sm">{p.name}</TableCell>
+                <TableCell className="truncate text-xs text-muted-foreground">
+                  {p.domain || "—"}
+                </TableCell>
+                <TableCell className="text-right text-xs">
+                  <Badge variant="secondary" className="font-mono">
+                    {p.chunk_count}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {formatDateTime(p.updated_at)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

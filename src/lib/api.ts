@@ -29,6 +29,7 @@ import type {
   RAGStats,
   RegisterRequest,
   SessionHistoryResponse,
+  SourceProceduresResponse,
   TokenResponse,
   UpdateProfileRequest,
   User,
@@ -264,6 +265,11 @@ export const api = {
         method: "POST",
         body: { code },
       }),
+    // Drill-down: list procedures thuộc 1 source (paginated)
+    listSourceProcedures: (sourceId: string, page = 1, page_size = 5) =>
+      request<SourceProceduresResponse>(
+        `/admin/sources/${sourceId}/procedures?page=${page}&page_size=${page_size}`,
+      ),
   },
 };
 
