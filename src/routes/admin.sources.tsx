@@ -73,7 +73,7 @@ function AdminSources() {
 
   // ── Mutations ─────────────────────────────────────────────────────────────────
   const crawlAgencyMutation = useMutation({
-    mutationFn: (v: { agency_id: string; agency_name: string }) =>
+    mutationFn: (v: { agency_code: string; agency_name: string }) =>
       api.admin.crawlAgency(v),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "sources"] });
@@ -223,7 +223,7 @@ function AdminSources() {
               {filteredAgencies.map((a) => {
                 const pending =
                   crawlAgencyMutation.isPending &&
-                  crawlAgencyMutation.variables?.agency_id === a.id;
+                  crawlAgencyMutation.variables?.agency_code === a.code;
                 return (
                   <div
                     key={a.id}
@@ -232,8 +232,8 @@ function AdminSources() {
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium">{a.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        ID: {a.id}
-                        {a.code ? ` · ${a.code}` : ""}
+                        Mã: {a.code}
+                        {a.level ? ` · ${a.level}` : ""}
                       </div>
                     </div>
                     <Button
@@ -243,7 +243,7 @@ function AdminSources() {
                       disabled={pending}
                       onClick={() =>
                         crawlAgencyMutation.mutate({
-                          agency_id: a.id,
+                          agency_code: a.code,
                           agency_name: a.name,
                         })
                       }

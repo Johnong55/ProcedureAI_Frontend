@@ -227,11 +227,12 @@ export interface CrawlTriggerResponse {
 export interface AgencyItem {
   id: string;
   name: string;
-  code: string | null;
+  code: string;
+  level?: string | null;
 }
 
 export interface CrawlAgencyRequest {
-  agency_id: string;
+  agency_code: string;
   agency_name?: string;
 }
 
