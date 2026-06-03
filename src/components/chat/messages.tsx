@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText } from "lucide-react";
 import type { ChatMessage, FormItem, Source } from "@/lib/types";
+import { resolveApiUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { FormDownloadCard } from "./form-card";
 import { StepCard } from "./step-card";
@@ -180,7 +181,7 @@ function FormsList({ forms }: { forms: FormItem[] }) {
             </div>
           </div>
           <Button asChild size="sm" className="shrink-0 gap-1.5">
-            <a href={f.url} target="_blank" rel="noreferrer">
+            <a href={resolveApiUrl(f.url)} target="_blank" rel="noreferrer">
               <FileDown className="h-4 w-4" /> Tải về
             </a>
           </Button>

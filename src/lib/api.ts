@@ -42,6 +42,28 @@ const API_BASE: string =
   import.meta.env.VITE_API_BASE_URL ||
   "http://localhost:8000/api/v1";
 
+/**
+ * Resolve relative API URL (vd "/api/v1/forms/abc?name=xyz") thành absolute
+ * URL trỏ tới backend. Cần thiết vì form_url lưu trong DB là path tương đối —
+ * click trên FE origin (5173) sẽ 404 nếu không prepend backend origin (8000).
+ *
+ * - URL absolute (https://..., http://...) → trả nguyên.
+ * - Path bắt đầu bằng "/api/" → prepend backend origin extract từ API_BASE.
+ * - Còn lại → trả nguyên.
+ */
+export function resolveApiUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  if (!url.startsWith("/api/")) return url;
+  try {
+    // API_BASE có dạng "http://localhost:8000/api/v1" → origin = "http://localhost:8000"
+    const origin = new URL(API_BASE).origin;
+    return origin + url;
+  } catch {
+    return url;
+  }
+}
+
 // ─── Token storage (localStorage) ─────────────────────────────────────────────
 
 const TOKEN_KEY = "hosoai.access_token";

@@ -1,13 +1,14 @@
 import { FileDown, FileText, Eye, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { resolveApiUrl } from "@/lib/api";
 import type { Source } from "@/lib/types";
 
 export function FormDownloadCard({ source }: { source: Source }) {
   const [showGuide, setShowGuide] = useState(false);
   const m = source.metadata ?? {};
   const name = m.form_name || source.content_preview.slice(0, 80);
-  const url = m.form_url;
+  const url = resolveApiUrl(m.form_url);
   const ext = (m.file_extension || "docx").toUpperCase();
   const guide = m.fill_guide;
 
