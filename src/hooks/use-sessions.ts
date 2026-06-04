@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { sessionStore } from "@/lib/sessions";
-import type { BackendSession, ChatSession } from "@/lib/types";
+import type { BackendSession, ChatSession, SectionType } from "@/lib/types";
 
 /**
  * Convert backend session shape → frontend ChatSession shape.
@@ -129,6 +129,7 @@ export function useSessionDetail(sessionId: string | undefined): {
         ts: new Date(m.created_at).getTime(),
         backend_message_id: m.id,
         procedure_focus: m.procedure_focus,
+        section_type: m.section_type as SectionType | undefined,
       })),
       locality: data.session.locality_filter || undefined,
       domain: data.session.domain_filter || undefined,

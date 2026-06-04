@@ -98,10 +98,13 @@ export interface SectionResponse {
   answer: string;
   session_id: string;
   message_id?: string;
+  user_message_id?: string;
+  chip_label?: string;
   forms?: FormItem[];
   procedure_code: string;
   section_type: SectionType;
   latency_ms: number;
+  is_reuse?: boolean;
 }
 
 export interface ConversationTurn {
@@ -171,6 +174,7 @@ export interface BackendMessage {
   // Có giá trị khi role=assistant và procedure có biểu mẫu tải về.
   forms?: FormItem[];
   procedure_focus?: ProcedureFocus | null;
+  section_type?: SectionType | null;
 }
 
 export interface SessionHistoryResponse {

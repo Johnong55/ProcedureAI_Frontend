@@ -187,7 +187,7 @@ export function ChatSurface({
     [session, navigate, isAuthenticated, queryClient],
   );
 
-  // ── Chip click: fetch section → append assistant message ─────────────────────
+  // ── Chip click: fetch section → append USER (label chip) + ASSISTANT msg ────
   const handleSelectChip = useCallback(
     async (sourceMsgId: string, procedureCode: string, sectionType: SectionType) => {
       if (!session) return;
@@ -199,24 +199,49 @@ export function ChatSurface({
           procedure_code: procedureCode,
           section_type: sectionType,
         });
+
+        // Idempotent: BE phát hiện chip đã click trước → trả message cũ.
+        // Không append duplicate, chỉ thông báo nhẹ.
+        if (res.is_reuse) {
+          toast.info("Mục này đã xem rồi", {
+            description: "Cuộn lên để xem nội dung.",
+          });
+          return;
+        }
+
+        // Tạo USER message giả lập user "nhấn" chip (làm chat feel real)
+        const userChipMsg: ChatMessage = {
+          id: res.user_message_id || crypto.randomUUID(),
+          role: "user",
+          content: res.chip_label || "(chip)",
+          ts: Date.now(),
+          section_type: res.section_type,
+        };
         const sectionMsg: ChatMessage = {
           id: crypto.randomUUID(),
           role: "assistant",
           content: res.answer,
           forms: res.forms,
           latency_ms: res.latency_ms ?? performance.now() - t0,
-          ts: Date.now(),
+          ts: Date.now() + 1,
           backend_message_id: res.message_id,
           section_type: res.section_type,
         };
 
         if (isAuthenticated) {
           setSession((prev) =>
-            prev ? { ...prev, messages: [...prev.messages, sectionMsg], updatedAt: Date.now() } : prev,
+            prev
+              ? {
+                  ...prev,
+                  messages: [...prev.messages, userChipMsg, sectionMsg],
+                  updatedAt: Date.now(),
+                }
+              : prev,
           );
         } else {
-          const after = sessionStore.appendMessage(session.id, sectionMsg);
-          setSession({ ...after });
+          let next = sessionStore.appendMessage(session.id, userChipMsg);
+          next = sessionStore.appendMessage(session.id, sectionMsg);
+          setSession({ ...next });
         }
       } catch (e) {
         const err = e instanceof Error ? e.message : String(e);
@@ -228,24 +253,22 @@ export function ChatSurface({
     [session, isAuthenticated],
   );
 
-  // Tập chip đã click trên từng message — để chip nào click rồi hiển thị mờ.
+  // Tập chip đã click trên từng intro message — để dock ẩn chip đã xem.
+  // section_type persist trong DB → reload vẫn detect đúng (Phase 8).
   const viewedChipsByMsg = (() => {
     const map: Record<string, SectionType[]> = {};
     if (!session) return map;
-    // Tìm các section message → liên kết với message intro gần nhất trước nó.
     let lastFocusMsgId: string | null = null;
-    let lastFocusCode: string | null = null;
     for (const m of session.messages) {
       if (m.role === "assistant" && m.procedure_focus) {
         lastFocusMsgId = m.id;
-        lastFocusCode = m.procedure_focus.code;
-      } else if (
-        m.role === "assistant" &&
-        m.section_type &&
-        lastFocusMsgId &&
-        lastFocusCode
-      ) {
-        (map[lastFocusMsgId] ??= []).push(m.section_type);
+        continue;
+      }
+      // ASSISTANT section message HOẶC USER chip-click message — cả 2 đều có
+      // section_type set bởi BE / FE handler.
+      if (m.section_type && lastFocusMsgId) {
+        const list = (map[lastFocusMsgId] ??= []);
+        if (!list.includes(m.section_type)) list.push(m.section_type);
       }
     }
     return map;
