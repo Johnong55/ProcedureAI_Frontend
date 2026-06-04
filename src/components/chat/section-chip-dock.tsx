@@ -8,6 +8,8 @@ import {
   GitBranch,
   Loader2,
   MousePointerClick,
+  Send,
+  ExternalLink,
 } from "lucide-react";
 import type { ProcedureFocus, SectionType } from "@/lib/types";
 
@@ -82,7 +84,9 @@ export function SectionChipDock({
     if (viewed.size > 0) setPulse(false);
   }, [viewed.size]);
 
-  if (remaining.length === 0) return null;
+  const submitUrl = focus.online_submission_url;
+  // Hide dock chỉ khi không còn chip AND không có nút nộp.
+  if (remaining.length === 0 && !submitUrl) return null;
 
   const isFirstView = viewed.size === 0;
 
@@ -110,7 +114,7 @@ export function SectionChipDock({
         </div>
       </div>
 
-      {/* Chips */}
+      {/* Chips + CTA nộp trực tuyến */}
       <div className="flex flex-wrap gap-2">
         {remaining.map((chip) => {
           const meta = CHIP_META[chip];
@@ -140,6 +144,20 @@ export function SectionChipDock({
           );
         })}
       </div>
+
+      {/* Nút Nộp trực tuyến — tách riêng, prominent, action chính */}
+      {submitUrl && (
+        <a
+          href={submitUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-md transition hover:bg-primary/90 active:scale-95"
+        >
+          <Send className="h-4 w-4" />
+          Nộp trực tuyến trên Cổng DVCQG
+          <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+        </a>
+      )}
     </div>
   );
 }

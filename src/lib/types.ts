@@ -72,6 +72,9 @@ export interface ProcedureFocus {
   name: string;
   available_chips: SectionType[];
   related: RelatedProcedure[];
+  // URL Cổng DVCQG để user nộp trực tuyến. Null khi thủ tục không hỗ trợ
+  // ONLINE hoặc data crawl cũ chưa có formality_id.
+  online_submission_url?: string | null;
 }
 
 export interface AskResponse {
