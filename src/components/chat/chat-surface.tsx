@@ -10,6 +10,7 @@ import { AssistantMessage, TypingIndicator, UserMessage } from "./messages";
 import { ChatInput } from "./chat-input";
 import { FilterChips } from "./filter-chips";
 import { LandingHero } from "./landing-hero";
+import { SectionChipDock } from "./section-chip-dock";
 
 export function ChatSurface({
   sessionId,
@@ -299,17 +300,7 @@ export function ChatSurface({
               m.role === "user" ? (
                 <UserMessage key={m.id} msg={m} />
               ) : (
-                <AssistantMessage
-                  key={m.id}
-                  msg={m}
-                  onSelectChip={(code, t) => handleSelectChip(m.id, code, t)}
-                  pendingChip={
-                    pendingChipState?.messageId === m.id
-                      ? pendingChipState.chip
-                      : null
-                  }
-                  viewedChips={viewedChipsByMsg[m.id]}
-                />
+                <AssistantMessage key={m.id} msg={m} />
               ),
             )}
             {loading && <TypingIndicator />}
@@ -319,6 +310,37 @@ export function ChatSurface({
 
       <div className="border-t bg-background/80 backdrop-blur pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto w-full max-w-3xl px-4 py-3">
+          {(() => {
+            // Tìm assistant message gần nhất có procedure_focus → dock chip ở dock.
+            if (!session) return null;
+            const msgs = session.messages;
+            let activeMsg: ChatMessage | undefined;
+            for (let i = msgs.length - 1; i >= 0; i--) {
+              if (msgs[i].role === "assistant" && msgs[i].procedure_focus) {
+                activeMsg = msgs[i];
+                break;
+              }
+            }
+            if (!activeMsg || !activeMsg.procedure_focus) return null;
+            return (
+              <SectionChipDock
+                focus={activeMsg.procedure_focus}
+                onSelect={(t) =>
+                  handleSelectChip(
+                    activeMsg!.id,
+                    activeMsg!.procedure_focus!.code,
+                    t,
+                  )
+                }
+                pendingChip={
+                  pendingChipState?.messageId === activeMsg.id
+                    ? pendingChipState.chip
+                    : null
+                }
+                viewedChips={viewedChipsByMsg[activeMsg.id]}
+              />
+            );
+          })()}
           <ChatInput onSubmit={send} loading={loading} initialValue={prefill} />
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             Dữ liệu lấy từ Cổng Dịch vụ công Quốc gia • Nhấn <kbd className="rounded border bg-muted px-1">Enter</kbd> để gửi
