@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText } from "lucide-react";
-import type { ChatMessage, FormItem, Source } from "@/lib/types";
+import type { ChatMessage, FormItem, SectionType, Source } from "@/lib/types";
 import { resolveApiUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { FormDownloadCard } from "./form-card";
@@ -11,6 +11,7 @@ import { ResultCard } from "./result-card";
 import { LegalCitation } from "./legal-citation";
 import { SourcesFooter } from "./sources-footer";
 import { FeedbackButtons } from "./feedback-buttons";
+import { ChipRow } from "./chip-row";
 
 function renderMarkdownLite(text: string) {
   // Very light markdown: split paragraphs, support **bold** and *italic*
@@ -61,8 +62,16 @@ export const UserMessage = memo(function UserMessage({ msg }: { msg: ChatMessage
 
 export const AssistantMessage = memo(function AssistantMessage({
   msg,
+  onSelectChip,
+  pendingChip,
+  viewedChips,
 }: {
   msg: ChatMessage;
+  // Click chip → parent fetch /chat/section + append message.
+  onSelectChip?: (code: string, sectionType: SectionType) => void;
+  pendingChip?: SectionType | null;
+  // Chip đã click → ghi nhận để hiển thị "đã xem".
+  viewedChips?: SectionType[];
 }) {
   // Chỉ render các chunk_type CÓ GIÁ TRỊ HIỂN THỊ THÊM ngoài text:
   // - "form": có link tải biểu mẫu
@@ -111,6 +120,15 @@ export const AssistantMessage = memo(function AssistantMessage({
 
         {msg.forms && msg.forms.length > 0 && (
           <FormsList forms={msg.forms} />
+        )}
+
+        {msg.procedure_focus && onSelectChip && (
+          <ChipRow
+            focus={msg.procedure_focus}
+            onSelect={(t) => onSelectChip(msg.procedure_focus!.code, t)}
+            pendingChip={pendingChip}
+            disabledChips={viewedChips}
+          />
         )}
 
         {uniqueChunks.length > 0 && (

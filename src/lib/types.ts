@@ -53,6 +53,27 @@ export interface FormItem {
   procedure_name?: string | null;
 }
 
+export interface RelatedProcedure {
+  code: string;
+  name: string;
+}
+
+// Section types mà BE hỗ trợ. Phải khớp với SECTION_TYPES bên BE.
+export type SectionType =
+  | "steps"
+  | "requirements"
+  | "fees"
+  | "agency"
+  | "forms"
+  | "other_procedures";
+
+export interface ProcedureFocus {
+  code: string;
+  name: string;
+  available_chips: SectionType[];
+  related: RelatedProcedure[];
+}
+
 export interface AskResponse {
   answer: string;
   session_id: string;
@@ -60,6 +81,23 @@ export interface AskResponse {
   sources: Source[];
   forms?: FormItem[];
   is_fallback: boolean;
+  latency_ms: number;
+  procedure_focus?: ProcedureFocus | null;
+}
+
+export interface SectionRequest {
+  session_id?: string;
+  procedure_code: string;
+  section_type: SectionType;
+}
+
+export interface SectionResponse {
+  answer: string;
+  session_id: string;
+  message_id?: string;
+  forms?: FormItem[];
+  procedure_code: string;
+  section_type: SectionType;
   latency_ms: number;
 }
 
@@ -88,6 +126,10 @@ export interface ChatMessage {
   ts: number;
   // ID của message từ backend (để gửi feedback)
   backend_message_id?: string;
+  // Có giá trị khi BE xác định được 1 thủ tục focus → FE render chip row.
+  procedure_focus?: ProcedureFocus | null;
+  // Đánh dấu message section (từ click chip) — UI có thể style khác intro.
+  section_type?: SectionType;
 }
 
 export interface ChatSession {
@@ -125,6 +167,7 @@ export interface BackendMessage {
   // Re-derived ở backend từ audit (RAGGenerationLog → ProcedureRequirement)
   // Có giá trị khi role=assistant và procedure có biểu mẫu tải về.
   forms?: FormItem[];
+  procedure_focus?: ProcedureFocus | null;
 }
 
 export interface SessionHistoryResponse {

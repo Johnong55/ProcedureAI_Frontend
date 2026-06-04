@@ -28,6 +28,8 @@ import type {
   PaginatedResponse,
   RAGStats,
   RegisterRequest,
+  SectionRequest,
+  SectionResponse,
   SessionHistoryResponse,
   SourceProceduresResponse,
   TokenResponse,
@@ -235,6 +237,8 @@ export const api = {
   chat: {
     ask: (data: AskRequest) =>
       request<AskResponse>("/chat/ask", { method: "POST", body: data }),
+    section: (data: SectionRequest) =>
+      request<SectionResponse>("/chat/section", { method: "POST", body: data }),
     listSessions: (page = 1, page_size = 20) =>
       request<PaginatedResponse<BackendSession>>(
         `/chat/sessions?page=${page}&page_size=${page_size}`,

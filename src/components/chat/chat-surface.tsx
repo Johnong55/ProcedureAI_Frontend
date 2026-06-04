@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { sessionStore } from "@/lib/sessions";
-import type { ChatMessage, ChatSession } from "@/lib/types";
+import type { ChatMessage, ChatSession, SectionType } from "@/lib/types";
 import { AssistantMessage, TypingIndicator, UserMessage } from "./messages";
 import { ChatInput } from "./chat-input";
 import { FilterChips } from "./filter-chips";
@@ -24,6 +24,11 @@ export function ChatSurface({
   const [session, setSession] = useState<ChatSession | undefined>(initialSession);
   const [loading, setLoading] = useState(false);
   const [prefill, setPrefill] = useState("");
+  // Đang fetch section của message nào — để chip hiện spinner.
+  const [pendingChipState, setPendingChipState] = useState<{
+    messageId: string;
+    chip: SectionType;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Re-sync khi initialSession (props) thay đổi
@@ -98,6 +103,7 @@ export function ChatSurface({
             latency_ms: res.latency_ms ?? performance.now() - t0,
             ts: Date.now(),
             backend_message_id: res.message_id,
+            procedure_focus: res.procedure_focus,
           };
           // Update local state với assistant message + backend_session_id
           setSession({
@@ -164,6 +170,7 @@ export function ChatSurface({
           latency_ms: res.latency_ms ?? performance.now() - t0,
           ts: Date.now(),
           backend_message_id: res.message_id,
+          procedure_focus: res.procedure_focus,
         };
         const after = sessionStore.appendMessage(sid, assistantMsg, {
           backend_session_id: res.session_id,
@@ -178,6 +185,70 @@ export function ChatSurface({
     },
     [session, navigate, isAuthenticated, queryClient],
   );
+
+  // ── Chip click: fetch section → append assistant message ─────────────────────
+  const handleSelectChip = useCallback(
+    async (sourceMsgId: string, procedureCode: string, sectionType: SectionType) => {
+      if (!session) return;
+      setPendingChipState({ messageId: sourceMsgId, chip: sectionType });
+      const t0 = performance.now();
+      try {
+        const res = await api.chat.section({
+          session_id: isAuthenticated ? session.backend_session_id : undefined,
+          procedure_code: procedureCode,
+          section_type: sectionType,
+        });
+        const sectionMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: res.answer,
+          forms: res.forms,
+          latency_ms: res.latency_ms ?? performance.now() - t0,
+          ts: Date.now(),
+          backend_message_id: res.message_id,
+          section_type: res.section_type,
+        };
+
+        if (isAuthenticated) {
+          setSession((prev) =>
+            prev ? { ...prev, messages: [...prev.messages, sectionMsg], updatedAt: Date.now() } : prev,
+          );
+        } else {
+          const after = sessionStore.appendMessage(session.id, sectionMsg);
+          setSession({ ...after });
+        }
+      } catch (e) {
+        const err = e instanceof Error ? e.message : String(e);
+        toast.error("Không tải được nội dung mục này", { description: err });
+      } finally {
+        setPendingChipState(null);
+      }
+    },
+    [session, isAuthenticated],
+  );
+
+  // Tập chip đã click trên từng message — để chip nào click rồi hiển thị mờ.
+  const viewedChipsByMsg = (() => {
+    const map: Record<string, SectionType[]> = {};
+    if (!session) return map;
+    // Tìm các section message → liên kết với message intro gần nhất trước nó.
+    let lastFocusMsgId: string | null = null;
+    let lastFocusCode: string | null = null;
+    for (const m of session.messages) {
+      if (m.role === "assistant" && m.procedure_focus) {
+        lastFocusMsgId = m.id;
+        lastFocusCode = m.procedure_focus.code;
+      } else if (
+        m.role === "assistant" &&
+        m.section_type &&
+        lastFocusMsgId &&
+        lastFocusCode
+      ) {
+        (map[lastFocusMsgId] ??= []).push(m.section_type);
+      }
+    }
+    return map;
+  })();
 
   const updateFilters = (patch: { locality?: string; domain?: string }) => {
     // Filters chỉ áp dụng cho guest mode (logged-in dùng filter từ backend session)
@@ -228,7 +299,17 @@ export function ChatSurface({
               m.role === "user" ? (
                 <UserMessage key={m.id} msg={m} />
               ) : (
-                <AssistantMessage key={m.id} msg={m} />
+                <AssistantMessage
+                  key={m.id}
+                  msg={m}
+                  onSelectChip={(code, t) => handleSelectChip(m.id, code, t)}
+                  pendingChip={
+                    pendingChipState?.messageId === m.id
+                      ? pendingChipState.chip
+                      : null
+                  }
+                  viewedChips={viewedChipsByMsg[m.id]}
+                />
               ),
             )}
             {loading && <TypingIndicator />}
