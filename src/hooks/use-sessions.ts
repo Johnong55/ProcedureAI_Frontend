@@ -128,6 +128,7 @@ export function useSessionDetail(sessionId: string | undefined): {
         forms: m.forms,
         ts: new Date(m.created_at).getTime(),
         backend_message_id: m.id,
+        procedure_focus: m.procedure_focus,
       })),
       locality: data.session.locality_filter || undefined,
       domain: data.session.domain_filter || undefined,
