@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   ListChecks,
   Coins,
@@ -6,7 +7,7 @@ import {
   FileDown,
   GitBranch,
   Loader2,
-  Sparkles,
+  MousePointerClick,
 } from "lucide-react";
 import type { ProcedureFocus, SectionType } from "@/lib/types";
 
@@ -68,14 +69,48 @@ export function SectionChipDock({
 }: Props) {
   const viewed = new Set(viewedChips ?? []);
   const remaining = focus.available_chips.filter((c) => !viewed.has(c));
+
+  // Pulse 3 lần đầu khi dock mới mount (focus đổi) → user dễ nhận ra
+  // có gì click được. Tắt sau khi user click chip đầu tiên (viewed có item).
+  const [pulse, setPulse] = useState(true);
+  useEffect(() => {
+    setPulse(true);
+    const t = setTimeout(() => setPulse(false), 4500); // ~3 cycles 1.5s
+    return () => clearTimeout(t);
+  }, [focus.code]);
+  useEffect(() => {
+    if (viewed.size > 0) setPulse(false);
+  }, [viewed.size]);
+
   if (remaining.length === 0) return null;
 
+  const isFirstView = viewed.size === 0;
+
   return (
-    <div className="mb-3 rounded-2xl border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent p-3 shadow-sm">
-      <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-foreground">
-        <Sparkles className="h-3.5 w-3.5 text-primary" />
-        Bạn muốn xem chi tiết phần nào của thủ tục?
+    <div
+      className={[
+        "relative mb-3 rounded-2xl border-2 border-primary bg-primary/5 p-4 shadow-md",
+        pulse ? "ring-4 ring-primary/30 animate-[pulse_1.5s_ease-in-out_infinite]" : "",
+      ].join(" ")}
+    >
+      {/* Header với CTA rõ ràng */}
+      <div className="mb-3 flex items-start gap-2">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <MousePointerClick className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-foreground">
+            Bấm vào để xem chi tiết
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {isFirstView
+              ? "Chọn nội dung bạn quan tâm — AI sẽ trả lời ngay phía trên."
+              : "Còn nội dung khác có thể xem thêm:"}
+          </div>
+        </div>
       </div>
+
+      {/* Chips */}
       <div className="flex flex-wrap gap-2">
         {remaining.map((chip) => {
           const meta = CHIP_META[chip];
@@ -89,7 +124,7 @@ export function SectionChipDock({
               onClick={() => onSelect(chip)}
               disabled={isPending}
               className={[
-                "inline-flex items-center gap-1.5 rounded-full border-2 px-3.5 py-1.5 text-sm font-medium transition shadow-sm",
+                "group inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-semibold transition active:scale-95 shadow-sm",
                 meta.tone,
                 isPending ? "cursor-wait opacity-70" : "cursor-pointer",
               ].join(" ")}
@@ -98,7 +133,7 @@ export function SectionChipDock({
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4 transition group-hover:scale-110" />
               )}
               {meta.label}
             </button>
