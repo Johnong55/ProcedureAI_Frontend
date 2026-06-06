@@ -42,8 +42,7 @@ const API_BASE: string =
   (typeof window !== "undefined" &&
     (window as unknown as { __HOSOAI_API__?: string }).__HOSOAI_API__) ||
   import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:8000/api/v1";
-
+  "https://vast-poultry-specialists-leone.trycloudflare.com/api/v1";
 /**
  * Resolve relative API URL (vd "/api/v1/forms/abc?name=xyz") thành absolute
  * URL trỏ tới backend. Cần thiết vì form_url lưu trong DB là path tương đối —
