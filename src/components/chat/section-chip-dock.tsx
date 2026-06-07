@@ -54,6 +54,12 @@ interface Props {
   onSelect: (sectionType: SectionType) => void;
   pendingChip?: SectionType | null;
   viewedChips?: SectionType[];
+  /**
+   * Phase 9: section đã có cache Redis → click sẽ instant. FE poll endpoint
+   * /chat/section/status sau khi /chat/ask trả về để biết. Render dot ✓ tím
+   * trên chip đã sẵn sàng.
+   */
+  cachedChips?: SectionType[];
 }
 
 /**
@@ -68,8 +74,10 @@ export function SectionChipDock({
   onSelect,
   pendingChip,
   viewedChips,
+  cachedChips,
 }: Props) {
   const viewed = new Set(viewedChips ?? []);
+  const cached = new Set(cachedChips ?? []);
   const remaining = focus.available_chips.filter((c) => !viewed.has(c));
 
   // Pulse 3 lần đầu khi dock mới mount (focus đổi) → user dễ nhận ra
@@ -120,6 +128,7 @@ export function SectionChipDock({
           const meta = CHIP_META[chip];
           if (!meta) return null;
           const isPending = pendingChip === chip;
+          const isCached = cached.has(chip);
           const { Icon } = meta;
           return (
             <button
@@ -127,8 +136,9 @@ export function SectionChipDock({
               type="button"
               onClick={() => onSelect(chip)}
               disabled={isPending}
+              title={isCached ? "Đã sẵn sàng — click để xem ngay" : undefined}
               className={[
-                "group inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-semibold transition active:scale-95 shadow-sm",
+                "group relative inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-semibold transition active:scale-95 shadow-sm",
                 meta.tone,
                 isPending ? "cursor-wait opacity-70" : "cursor-pointer",
               ].join(" ")}
@@ -140,6 +150,12 @@ export function SectionChipDock({
                 <Icon className="h-4 w-4 transition group-hover:scale-110" />
               )}
               {meta.label}
+              {isCached && !isPending && (
+                <span
+                  className="ml-1 inline-flex h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200"
+                  aria-label="Đã sẵn sàng"
+                />
+              )}
             </button>
           );
         })}

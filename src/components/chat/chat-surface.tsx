@@ -30,6 +30,12 @@ export function ChatSurface({
     messageId: string;
     chip: SectionType;
   } | null>(null);
+  // Phase 9: section nào đã có cache Redis → click sẽ instant. Poll mỗi 1.5s
+  // trong ~10s sau khi /chat/ask trả về procedure_focus. Set theo
+  // procedure_code: tránh mix giữa các message.
+  const [cachedSectionsByCode, setCachedSectionsByCode] = useState<
+    Record<string, SectionType[]>
+  >({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Re-sync khi initialSession (props) thay đổi
@@ -255,6 +261,59 @@ export function ChatSurface({
 
   // Tập chip đã click trên từng intro message — để dock ẩn chip đã xem.
   // section_type persist trong DB → reload vẫn detect đúng (Phase 8).
+  // Phase 9: Poll cache status cho procedure_focus mới nhất.
+  // BE pre-fetch background sau /chat/ask → check mỗi 1.5s × 8 lần (12s tổng).
+  // Stop khi tất cả chips đã cached hoặc hết lượt poll.
+  useEffect(() => {
+    if (!session) return;
+    const msgs = session.messages;
+    let lastFocus: { code: string; chips: SectionType[]; sessionForCache: string } | undefined;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (m.role === "assistant" && m.procedure_focus) {
+        lastFocus = {
+          code: m.procedure_focus.code,
+          chips: m.procedure_focus.available_chips.filter((c) => c !== "other_procedures"),
+          // dùng session backend (auth) hoặc session local FE (guest)
+          sessionForCache: session.backend_session_id || session.id,
+        };
+        break;
+      }
+    }
+    if (!lastFocus || lastFocus.chips.length === 0) return;
+    if (!lastFocus.sessionForCache) return;
+
+    let attempts = 0;
+    const maxAttempts = 8;
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await api.chat.sectionStatus(
+          lastFocus!.sessionForCache,
+          lastFocus!.code,
+          lastFocus!.chips,
+        );
+        const readyChips = lastFocus!.chips.filter((c) => res.ready[c]);
+        setCachedSectionsByCode((prev) => ({
+          ...prev,
+          [lastFocus!.code]: readyChips,
+        }));
+        // Stop sớm nếu tất cả đã ready
+        if (readyChips.length === lastFocus!.chips.length) {
+          clearInterval(interval);
+        }
+      } catch {
+        // Silent — endpoint optional, lỗi không ảnh hưởng UX
+      }
+      if (attempts >= maxAttempts) clearInterval(interval);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [
+    session?.messages.length,
+    session?.backend_session_id,
+    session?.id,
+  ]);
+
   const viewedChipsByMsg = (() => {
     const map: Record<string, SectionType[]> = {};
     if (!session) return map;
@@ -361,6 +420,9 @@ export function ChatSurface({
                     : null
                 }
                 viewedChips={viewedChipsByMsg[activeMsg.id]}
+                cachedChips={
+                  cachedSectionsByCode[activeMsg.procedure_focus.code]
+                }
               />
             );
           })()}
