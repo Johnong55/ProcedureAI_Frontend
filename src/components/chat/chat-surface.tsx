@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { sessionStore } from "@/lib/sessions";
@@ -36,6 +37,9 @@ export function ChatSurface({
   const [cachedSectionsByCode, setCachedSectionsByCode] = useState<
     Record<string, SectionType[]>
   >({});
+  // Dock chip ẩn mặc định — user click button "Xem nội dung khác" để mở.
+  // Mỗi procedure_focus mới (msg.id mới) → reset về ẩn để user chủ động mở lại.
+  const [openedDockMsgId, setOpenedDockMsgId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Re-sync khi initialSession (props) thay đổi
@@ -404,26 +408,67 @@ export function ChatSurface({
               }
             }
             if (!activeMsg || !activeMsg.procedure_focus) return null;
+
+            const isOpen = openedDockMsgId === activeMsg.id;
+            const viewedList = viewedChipsByMsg[activeMsg.id] ?? [];
+            const totalChips = activeMsg.procedure_focus.available_chips.length;
+            const remainingCount = totalChips - viewedList.length;
+            const hasSubmitUrl = !!activeMsg.procedure_focus.online_submission_url;
+
+            // Tự hide button luôn khi không còn gì để show
+            if (remainingCount === 0 && !hasSubmitUrl) return null;
+
+            if (!isOpen) {
+              // BUTTON mode — nhỏ gọn, click để mở dock
+              return (
+                <button
+                  type="button"
+                  onClick={() => setOpenedDockMsgId(activeMsg!.id)}
+                  className="mb-2 inline-flex items-center gap-2 rounded-full border-2 border-primary/30 bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition hover:border-primary/50 hover:bg-primary/10 active:scale-95"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Xem nội dung chi tiết
+                  {remainingCount > 0 && (
+                    <span className="inline-flex items-center justify-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                      {remainingCount}
+                    </span>
+                  )}
+                </button>
+              );
+            }
+
+            // OPEN mode — dock + nút đóng X góc phải
             return (
-              <SectionChipDock
-                focus={activeMsg.procedure_focus}
-                onSelect={(t) =>
-                  handleSelectChip(
-                    activeMsg!.id,
-                    activeMsg!.procedure_focus!.code,
-                    t,
-                  )
-                }
-                pendingChip={
-                  pendingChipState?.messageId === activeMsg.id
-                    ? pendingChipState.chip
-                    : null
-                }
-                viewedChips={viewedChipsByMsg[activeMsg.id]}
-                cachedChips={
-                  cachedSectionsByCode[activeMsg.procedure_focus.code]
-                }
-              />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenedDockMsgId(null)}
+                  className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-background/80 text-muted-foreground transition hover:bg-background hover:text-foreground"
+                  aria-label="Đóng"
+                  title="Đóng"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <SectionChipDock
+                  focus={activeMsg.procedure_focus}
+                  onSelect={(t) =>
+                    handleSelectChip(
+                      activeMsg!.id,
+                      activeMsg!.procedure_focus!.code,
+                      t,
+                    )
+                  }
+                  pendingChip={
+                    pendingChipState?.messageId === activeMsg.id
+                      ? pendingChipState.chip
+                      : null
+                  }
+                  viewedChips={viewedList}
+                  cachedChips={
+                    cachedSectionsByCode[activeMsg.procedure_focus.code]
+                  }
+                />
+              </div>
             );
           })()}
           <ChatInput onSubmit={send} loading={loading} initialValue={prefill} />
