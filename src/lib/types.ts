@@ -51,6 +51,9 @@ export interface FormItem {
   url: string;
   procedure_code?: string | null;
   procedure_name?: string | null;
+  // Phase 11 — cho nút "Hướng dẫn điền":
+  requirement_id?: string | null;
+  parse_status?: "ok" | "failed" | "unsupported" | null;
 }
 
 export interface RelatedProcedure {
@@ -59,13 +62,15 @@ export interface RelatedProcedure {
 }
 
 // Section types mà BE hỗ trợ. Phải khớp với SECTION_TYPES bên BE.
+// "form_guide:<requirement_id_prefix>" cho Phase 11 — section_type động per-form.
 export type SectionType =
   | "steps"
   | "requirements"
   | "fees"
   | "agency"
   | "forms"
-  | "other_procedures";
+  | "other_procedures"
+  | `form_guide:${string}`;
 
 export interface ProcedureFocus {
   code: string;
@@ -103,6 +108,29 @@ export interface SectionResponse {
   forms?: FormItem[];
   procedure_code: string;
   section_type: SectionType;
+  latency_ms: number;
+  is_reuse?: boolean;
+}
+
+// Phase 11 — hướng dẫn điền 1 biểu mẫu cụ thể
+export interface FormGuideRequest {
+  session_id?: string;
+  procedure_code: string;
+  requirement_id: string;
+}
+
+export interface FormGuideResponse {
+  answer: string;
+  session_id: string;
+  message_id?: string;
+  user_message_id?: string;
+  chip_label?: string;
+  form_name?: string | null;
+  form_url?: string | null;
+  procedure_code: string;
+  requirement_id: string;
+  section_type: SectionType;
+  parse_status?: "ok" | "failed" | "unsupported" | null;
   latency_ms: number;
   is_reuse?: boolean;
 }

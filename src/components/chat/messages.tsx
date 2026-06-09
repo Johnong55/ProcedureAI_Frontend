@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText } from "lucide-react";
+import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText, Pencil } from "lucide-react";
 import type { ChatMessage, FormItem, Source } from "@/lib/types";
 import { resolveApiUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -61,8 +61,12 @@ export const UserMessage = memo(function UserMessage({ msg }: { msg: ChatMessage
 
 export const AssistantMessage = memo(function AssistantMessage({
   msg,
+  onRequestFormGuide,
+  pendingFormGuideId,
 }: {
   msg: ChatMessage;
+  onRequestFormGuide?: (form: FormItem) => void;
+  pendingFormGuideId?: string | null;
 }) {
   // Chỉ render các chunk_type CÓ GIÁ TRỊ HIỂN THỊ THÊM ngoài text:
   // - "form": có link tải biểu mẫu
@@ -110,7 +114,11 @@ export const AssistantMessage = memo(function AssistantMessage({
         />
 
         {msg.forms && msg.forms.length > 0 && (
-          <FormsList forms={msg.forms} />
+          <FormsList
+            forms={msg.forms}
+            onRequestFormGuide={onRequestFormGuide}
+            pendingFormGuideId={pendingFormGuideId}
+          />
         )}
 
         {uniqueChunks.length > 0 && (
@@ -145,7 +153,15 @@ export const AssistantMessage = memo(function AssistantMessage({
   );
 });
 
-function FormsList({ forms }: { forms: FormItem[] }) {
+function FormsList({
+  forms,
+  onRequestFormGuide,
+  pendingFormGuideId,
+}: {
+  forms: FormItem[];
+  onRequestFormGuide?: (form: FormItem) => void;
+  pendingFormGuideId?: string | null;
+}) {
   // Dedupe theo url
   const seen = new Set<string>();
   const unique = forms.filter((f) => {
@@ -160,33 +176,56 @@ function FormsList({ forms }: { forms: FormItem[] }) {
       <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <FileText className="h-3.5 w-3.5" /> Biểu mẫu tải về ({unique.length})
       </div>
-      {unique.map((f, i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between gap-3 rounded-lg border-2 border-primary/15 bg-card p-3 shadow-sm"
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-foreground">
-                {f.name}
-              </div>
-              {f.form_name && (
-                <div className="truncate text-xs text-muted-foreground">
-                  {f.form_name}
+      {unique.map((f, i) => {
+        const canGuide = !!f.requirement_id && f.parse_status === "ok";
+        const isPending =
+          pendingFormGuideId !== null &&
+          pendingFormGuideId !== undefined &&
+          pendingFormGuideId === f.requirement_id;
+        return (
+          <div
+            key={i}
+            className="rounded-lg border-2 border-primary/15 bg-card p-3 shadow-sm"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <FileText className="h-5 w-5" />
                 </div>
-              )}
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-foreground">
+                    {f.name}
+                  </div>
+                  {f.form_name && (
+                    <div className="truncate text-xs text-muted-foreground">
+                      {f.form_name}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Button asChild size="sm" className="shrink-0 gap-1.5">
+                <a href={resolveApiUrl(f.url)} target="_blank" rel="noreferrer">
+                  <FileDown className="h-4 w-4" /> Tải về
+                </a>
+              </Button>
             </div>
+            {canGuide && onRequestFormGuide && (
+              <div className="mt-2 flex justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  disabled={isPending}
+                  onClick={() => onRequestFormGuide(f)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  {isPending ? "Đang sinh hướng dẫn..." : "Hướng dẫn điền"}
+                </Button>
+              </div>
+            )}
           </div>
-          <Button asChild size="sm" className="shrink-0 gap-1.5">
-            <a href={resolveApiUrl(f.url)} target="_blank" rel="noreferrer">
-              <FileDown className="h-4 w-4" /> Tải về
-            </a>
-          </Button>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

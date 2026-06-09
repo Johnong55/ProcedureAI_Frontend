@@ -6,7 +6,7 @@ import { Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { sessionStore } from "@/lib/sessions";
-import type { ChatMessage, ChatSession, SectionType } from "@/lib/types";
+import type { ChatMessage, ChatSession, FormItem, SectionType } from "@/lib/types";
 import { AssistantMessage, TypingIndicator, UserMessage } from "./messages";
 import { ChatInput } from "./chat-input";
 import { FilterChips } from "./filter-chips";
@@ -37,6 +37,8 @@ export function ChatSurface({
   const [cachedSectionsByCode, setCachedSectionsByCode] = useState<
     Record<string, SectionType[]>
   >({});
+  // Phase 11: đang sinh hướng dẫn điền form nào — show spinner trên button.
+  const [pendingFormGuideId, setPendingFormGuideId] = useState<string | null>(null);
   // Dock chip ẩn mặc định — user click button "Xem nội dung khác" để mở.
   // Mỗi procedure_focus mới (msg.id mới) → reset về ẩn để user chủ động mở lại.
   const [openedDockMsgId, setOpenedDockMsgId] = useState<string | null>(null);
@@ -263,6 +265,68 @@ export function ChatSurface({
     [session, isAuthenticated],
   );
 
+  // ── Phase 11: Click "Hướng dẫn điền" trên form card ───────────────────────
+  const handleRequestFormGuide = useCallback(
+    async (form: FormItem) => {
+      if (!session || !form.requirement_id || !form.procedure_code) return;
+      setPendingFormGuideId(form.requirement_id);
+      const t0 = performance.now();
+      try {
+        const res = await api.chat.formGuide({
+          session_id: isAuthenticated ? session.backend_session_id : undefined,
+          procedure_code: form.procedure_code,
+          requirement_id: form.requirement_id,
+        });
+
+        if (res.is_reuse) {
+          toast.info("Hướng dẫn này đã xem rồi", {
+            description: "Cuộn lên để xem nội dung.",
+          });
+          return;
+        }
+
+        const userChipMsg: ChatMessage = {
+          id: res.user_message_id || crypto.randomUUID(),
+          role: "user",
+          content: res.chip_label || `📝 Hướng dẫn điền: ${form.name}`,
+          ts: Date.now(),
+          section_type: res.section_type,
+        };
+        const guideMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: res.answer,
+          latency_ms: res.latency_ms ?? performance.now() - t0,
+          ts: Date.now() + 1,
+          backend_message_id: res.message_id,
+          section_type: res.section_type,
+        };
+
+        if (isAuthenticated) {
+          setSession((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  messages: [...prev.messages, userChipMsg, guideMsg],
+                  updatedAt: Date.now(),
+                }
+              : prev,
+          );
+        } else {
+          let next = sessionStore.appendMessage(session.id, userChipMsg);
+          next = sessionStore.appendMessage(session.id, guideMsg);
+          setSession({ ...next });
+        }
+      } catch (e) {
+        const err = e instanceof Error ? e.message : String(e);
+        toast.error("Không sinh được hướng dẫn điền form", { description: err });
+      } finally {
+        setPendingFormGuideId(null);
+      }
+    },
+    [session, isAuthenticated],
+  );
+
   // Tập chip đã click trên từng intro message — để dock ẩn chip đã xem.
   // section_type persist trong DB → reload vẫn detect đúng (Phase 8).
   // Phase 9: Poll cache status cho procedure_focus mới nhất.
@@ -386,7 +450,12 @@ export function ChatSurface({
               m.role === "user" ? (
                 <UserMessage key={m.id} msg={m} />
               ) : (
-                <AssistantMessage key={m.id} msg={m} />
+                <AssistantMessage
+                  key={m.id}
+                  msg={m}
+                  onRequestFormGuide={handleRequestFormGuide}
+                  pendingFormGuideId={pendingFormGuideId}
+                />
               ),
             )}
             {loading && <TypingIndicator />}

@@ -30,6 +30,8 @@ import type {
   RegisterRequest,
   SectionRequest,
   SectionResponse,
+  FormGuideRequest,
+  FormGuideResponse,
   SessionHistoryResponse,
   SourceProceduresResponse,
   TokenResponse,
@@ -238,6 +240,8 @@ export const api = {
       request<AskResponse>("/chat/ask", { method: "POST", body: data }),
     section: (data: SectionRequest) =>
       request<SectionResponse>("/chat/section", { method: "POST", body: data }),
+    formGuide: (data: FormGuideRequest) =>
+      request<FormGuideResponse>("/chat/form-guide", { method: "POST", body: data }),
     sectionStatus: (sessionId: string, procedureCode: string, sections: string[]) =>
       request<{ procedure_code: string; ready: Record<string, boolean> }>(
         `/chat/section/status?session_id=${encodeURIComponent(sessionId)}&procedure_code=${encodeURIComponent(procedureCode)}&sections=${encodeURIComponent(sections.join(","))}`,
