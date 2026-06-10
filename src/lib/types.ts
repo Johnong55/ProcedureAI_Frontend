@@ -314,6 +314,13 @@ export interface CrawlAgencyRequest {
   agency_name?: string;
 }
 
+// Phase 12: crawl theo tỉnh/thành phố. BE reuse AgencyItem shape (cùng từ
+// endpoint /agencies?level=PROVINCE), chỉ khác request body.
+export interface CrawlProvinceRequest {
+  province_code: string;
+  province_name?: string;
+}
+
 export interface CrawlByCodeResponse {
   task_id: string;
   code: string;

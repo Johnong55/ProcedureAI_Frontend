@@ -13,6 +13,7 @@ import {
   HelpCircle,
   Search,
   Building2,
+  MapPin,
   FileSearch,
   ChevronRight,
   ChevronDown,
@@ -46,6 +47,7 @@ export const Route = createFileRoute("/admin/sources")({ component: AdminSources
 function AdminSources() {
   const queryClient = useQueryClient();
   const [agencyQuery, setAgencyQuery] = useState("");
+  const [provinceQuery, setProvinceQuery] = useState("");
   const [procCode, setProcCode] = useState("");
   // Set source_id đang được expand inline để xem preview procedures
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -65,6 +67,12 @@ function AdminSources() {
     staleTime: 5 * 60_000, // cache 5 phút, danh sách bộ ít đổi
   });
 
+  const provincesQuery = useQuery({
+    queryKey: ["admin", "provinces"],
+    queryFn: () => api.admin.listProvinces(),
+    staleTime: 10 * 60_000, // tỉnh ít đổi, cache 10 phút
+  });
+
   const { data: sources, isLoading: sourcesLoading } = useQuery({
     queryKey: ["admin", "sources"],
     queryFn: () => api.admin.listSources(),
@@ -82,6 +90,19 @@ function AdminSources() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "sources"] });
       toast.success("Đã kích hoạt crawl bộ/ngành", {
+        description: data.message,
+      });
+    },
+    onError: (e: Error) =>
+      toast.error("Không kích hoạt được", { description: e.message }),
+  });
+
+  const crawlProvinceMutation = useMutation({
+    mutationFn: (v: { province_code: string; province_name: string }) =>
+      api.admin.crawlProvince(v),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "sources"] });
+      toast.success("Đã kích hoạt crawl tỉnh/thành phố", {
         description: data.message,
       });
     },
@@ -129,6 +150,13 @@ function AdminSources() {
     if (!q) return list;
     return list.filter((a) => a.name.toLowerCase().includes(q));
   }, [agenciesQuery.data, agencyQuery]);
+
+  const filteredProvinces = useMemo(() => {
+    const list = provincesQuery.data ?? [];
+    const q = provinceQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((p) => p.name.toLowerCase().includes(q));
+  }, [provincesQuery.data, provinceQuery]);
 
   const isValidCode = /^\d+\.\d{4,}$/.test(procCode.trim());
 
@@ -265,6 +293,92 @@ function AdminSources() {
               {filteredAgencies.length === 0 && (
                 <p className="col-span-full py-6 text-center text-sm text-muted-foreground">
                   Không có cơ quan nào khớp "{agencyQuery}"
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Crawl theo tỉnh/thành phố (Phase 12) ──────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MapPin className="h-4 w-4" /> Crawl theo tỉnh/thành phố
+              </CardTitle>
+              <CardDescription>
+                {provincesQuery.data
+                  ? `${provincesQuery.data.length} tỉnh/TP từ Cổng DVCQG`
+                  : "Đang tải danh sách tỉnh/TP…"}
+              </CardDescription>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm tỉnh/TP…"
+                value={provinceQuery}
+                onChange={(e) => setProvinceQuery(e.target.value)}
+                className="w-56 pl-8"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {provincesQuery.isLoading && (
+            <div className="py-8 text-center">
+              <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {provincesQuery.isError && (
+            <p className="py-6 text-center text-sm text-destructive">
+              Không tải được danh sách tỉnh/TP. Thử lại sau.
+            </p>
+          )}
+          {provincesQuery.data && (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredProvinces.map((p) => {
+                const pending =
+                  crawlProvinceMutation.isPending &&
+                  crawlProvinceMutation.variables?.province_code === p.code;
+                return (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border bg-card p-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Mã: {p.code}
+                        {p.level ? ` · ${p.level}` : ""}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 gap-1.5"
+                      disabled={pending}
+                      onClick={() =>
+                        crawlProvinceMutation.mutate({
+                          province_code: p.code,
+                          province_name: p.name,
+                        })
+                      }
+                    >
+                      {pending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                      Crawl
+                    </Button>
+                  </div>
+                );
+              })}
+              {filteredProvinces.length === 0 && (
+                <p className="col-span-full py-6 text-center text-sm text-muted-foreground">
+                  Không có tỉnh/TP nào khớp "{provinceQuery}"
                 </p>
               )}
             </div>

@@ -18,6 +18,7 @@ import type {
   BackendSession,
   ChangePasswordRequest,
   CrawlAgencyRequest,
+  CrawlProvinceRequest,
   CrawlByCodeResponse,
   CrawlTriggerResponse,
   DocumentSource,
@@ -286,9 +287,18 @@ export const api = {
 
     // Lấy danh sách bộ/ngành động từ Cổng DVCQG (không dùng file local)
     listAgencies: () => request<AgencyItem[]>("/admin/sources/agencies"),
+    // Phase 12: lấy 35 tỉnh/thành phố
+    listProvinces: () =>
+      request<AgencyItem[]>("/admin/sources/agencies?level=PROVINCE"),
     // Crawl toàn bộ thủ tục của 1 bộ/ngành
     crawlAgency: (data: CrawlAgencyRequest) =>
       request<CrawlTriggerResponse>("/admin/sources/crawl-agency", {
+        method: "POST",
+        body: data,
+      }),
+    // Phase 12: crawl thủ tục của 1 tỉnh/thành phố
+    crawlProvince: (data: CrawlProvinceRequest) =>
+      request<CrawlTriggerResponse>("/admin/sources/crawl-province", {
         method: "POST",
         body: data,
       }),
