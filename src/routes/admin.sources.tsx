@@ -48,6 +48,9 @@ function AdminSources() {
   const queryClient = useQueryClient();
   const [agencyQuery, setAgencyQuery] = useState("");
   const [provinceQuery, setProvinceQuery] = useState("");
+  // Collapse mặc định để trang sạch (Phase 12 UX). User click chevron mới expand.
+  const [agencyOpen, setAgencyOpen] = useState(false);
+  const [provinceOpen, setProvinceOpen] = useState(false);
   const [procCode, setProcCode] = useState("");
   // Set source_id đang được expand inline để xem preview procedures
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -214,31 +217,47 @@ function AdminSources() {
         </CardContent>
       </Card>
 
-      {/* ── Crawl theo bộ/ngành ───────────────────────────────────────────── */}
+      {/* ── Crawl theo bộ/ngành (collapse) ────────────────────────────────── */}
       <Card>
-        <CardHeader>
+        <CardHeader
+          className="cursor-pointer select-none"
+          onClick={() => setAgencyOpen((v) => !v)}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Building2 className="h-4 w-4" /> Crawl theo bộ/ngành
-              </CardTitle>
-              <CardDescription>
-                {agenciesQuery.data
-                  ? `${agenciesQuery.data.length} cơ quan từ Cổng DVCQG`
-                  : "Đang tải danh sách cơ quan…"}
-              </CardDescription>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm bộ/ngành…"
-                value={agencyQuery}
-                onChange={(e) => setAgencyQuery(e.target.value)}
-                className="w-56 pl-8"
+            <div className="flex items-center gap-2">
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                  agencyOpen ? "" : "-rotate-90"
+                }`}
               />
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Building2 className="h-4 w-4" /> Crawl theo bộ/ngành
+                </CardTitle>
+                <CardDescription>
+                  {agenciesQuery.data
+                    ? `${agenciesQuery.data.length} cơ quan từ Cổng DVCQG`
+                    : "Đang tải danh sách cơ quan…"}
+                </CardDescription>
+              </div>
             </div>
+            {agencyOpen && (
+              <div
+                className="relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm bộ/ngành…"
+                  value={agencyQuery}
+                  onChange={(e) => setAgencyQuery(e.target.value)}
+                  className="w-56 pl-8"
+                />
+              </div>
+            )}
           </div>
         </CardHeader>
+        {agencyOpen && (
         <CardContent>
           {agenciesQuery.isLoading && (
             <div className="py-8 text-center">
@@ -298,33 +317,50 @@ function AdminSources() {
             </div>
           )}
         </CardContent>
+        )}
       </Card>
 
-      {/* ── Crawl theo tỉnh/thành phố (Phase 12) ──────────────────────────── */}
+      {/* ── Crawl theo tỉnh/thành phố (Phase 12, collapse) ────────────────── */}
       <Card>
-        <CardHeader>
+        <CardHeader
+          className="cursor-pointer select-none"
+          onClick={() => setProvinceOpen((v) => !v)}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MapPin className="h-4 w-4" /> Crawl theo tỉnh/thành phố
-              </CardTitle>
-              <CardDescription>
-                {provincesQuery.data
-                  ? `${provincesQuery.data.length} tỉnh/TP từ Cổng DVCQG`
-                  : "Đang tải danh sách tỉnh/TP…"}
-              </CardDescription>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm tỉnh/TP…"
-                value={provinceQuery}
-                onChange={(e) => setProvinceQuery(e.target.value)}
-                className="w-56 pl-8"
+            <div className="flex items-center gap-2">
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                  provinceOpen ? "" : "-rotate-90"
+                }`}
               />
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MapPin className="h-4 w-4" /> Crawl theo tỉnh/thành phố
+                </CardTitle>
+                <CardDescription>
+                  {provincesQuery.data
+                    ? `${provincesQuery.data.length} tỉnh/TP từ Cổng DVCQG`
+                    : "Đang tải danh sách tỉnh/TP…"}
+                </CardDescription>
+              </div>
             </div>
+            {provinceOpen && (
+              <div
+                className="relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm tỉnh/TP…"
+                  value={provinceQuery}
+                  onChange={(e) => setProvinceQuery(e.target.value)}
+                  className="w-56 pl-8"
+                />
+              </div>
+            )}
           </div>
         </CardHeader>
+        {provinceOpen && (
         <CardContent>
           {provincesQuery.isLoading && (
             <div className="py-8 text-center">
@@ -384,6 +420,7 @@ function AdminSources() {
             </div>
           )}
         </CardContent>
+        )}
       </Card>
 
       {/* ── Lịch sử / trạng thái các lần crawl ────────────────────────────── */}
