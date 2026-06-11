@@ -342,14 +342,43 @@ export interface SourceProceduresResponse {
   page_size: number;
 }
 
+export interface DailyActivityItem {
+  date: string;        // ISO yyyy-mm-dd
+  sessions: number;
+  queries: number;
+}
+
+export interface DomainCountItem {
+  domain: string;
+  count: number;
+}
+
+export interface TopProcedureItem {
+  code: string;
+  name: string;
+  count: number;
+  avg_rating?: number | null;
+}
+
 export interface RAGStats {
+  // Tổng quan
   total_procedures: number;
   total_chunks: number;
   total_sessions: number;
   total_queries: number;
+  total_users: number;
+  total_forms_ok: number;
+  total_feedback: number;
+  // Chất lượng
   avg_latency_ms: number;
   fallback_rate: number;
   avg_score: number;
+  avg_rating: number;
+  // Visualizations
+  daily_activity: DailyActivityItem[];
+  domain_distribution: DomainCountItem[];
+  top_procedures: TopProcedureItem[];
+  top_low_rated: TopProcedureItem[];
 }
 
 // ─── Feedback ─────────────────────────────────────────────────────────────────
