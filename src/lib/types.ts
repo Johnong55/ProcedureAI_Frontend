@@ -438,8 +438,15 @@ export interface ProcedureSearchParams {
   q?: string;
   domain?: string;
   authority_level?: AuthorityLevel;
+  agency_code?: string;  // Phase 14.1: filter theo bộ (G02) hoặc tỉnh (H49)
   page?: number;
   page_size?: number;
+}
+
+export interface SourceOption {
+  code: string;     // G01, G02, H49, ...
+  name: string;     // Bộ Công thương / UBND tỉnh Quảng Ninh
+  kind: "agency" | "province";
 }
 
 export interface RAGStats {

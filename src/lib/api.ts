@@ -30,6 +30,7 @@ import type {
   ProcedureDetail,
   ProcedureListItem,
   ProcedureSearchParams,
+  SourceOption,
   RAGStats,
   RegisterRequest,
   SectionRequest,
@@ -275,6 +276,7 @@ export const api = {
       if (params.q) qs.set("q", params.q);
       if (params.domain) qs.set("domain", params.domain);
       if (params.authority_level) qs.set("authority_level", params.authority_level);
+      if (params.agency_code) qs.set("agency_code", params.agency_code);
       qs.set("page", String(params.page ?? 1));
       qs.set("page_size", String(params.page_size ?? 12));
       return request<PaginatedResponse<ProcedureListItem>>(
@@ -284,6 +286,8 @@ export const api = {
     // procedure_id chấp nhận cả UUID lẫn code (vd "1.001612")
     get: (codeOrId: string) =>
       request<ProcedureDetail>(`/procedures/${encodeURIComponent(codeOrId)}`),
+    // List bộ + tỉnh đã crawl (public, build dropdown filter)
+    listSources: () => request<SourceOption[]>("/procedures/sources"),
   },
 
   // Admin
