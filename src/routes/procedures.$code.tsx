@@ -69,12 +69,11 @@ function ProcedureDetail() {
     );
   }
 
-  // Build URL nộp trực tuyến nếu có formality_id + fee Trực tuyến
+  // URL trang chi tiết thủ tục trên Cổng DVCQG (luôn build từ code)
+  const dvcqgUrl = `https://dichvucong.gov.vn/p/home/dvc-tthc-thu-tuc-hanh-chinh-chi-tiet.html?ma_thu_tuc=${data.code}`;
+  // URL nộp trực tuyến — chỉ hiện khi có submission_method "Trực tuyến"
   const hasOnline = data.fees.some((f) => f.submission_method?.includes("Trực tuyến"));
-  const onlineUrl =
-    hasOnline && data.formality_id
-      ? `https://dichvucong.gov.vn/p/home/dvc-tthc-thu-tuc-hanh-chinh-chi-tiet.html?ma_thu_tuc=${data.code}`
-      : null;
+  const onlineUrl = hasOnline && data.formality_id ? dvcqgUrl : null;
 
   // Group requirements theo case_group để render cụm
   const reqGroups: Record<string, typeof data.requirements> = {};
@@ -134,10 +133,15 @@ function ProcedureDetail() {
           <Button onClick={handleAskAI} className="gap-1.5">
             <MessageSquarePlus className="h-4 w-4" /> Hỏi AI về thủ tục này
           </Button>
+          <Button asChild variant="outline" className="gap-1.5">
+            <a href={dvcqgUrl} target="_blank" rel="noreferrer">
+              <ExternalLink className="h-4 w-4" /> Xem trên Cổng DVCQG
+            </a>
+          </Button>
           {onlineUrl && (
-            <Button asChild variant="outline" className="gap-1.5">
+            <Button asChild variant="secondary" className="gap-1.5">
               <a href={onlineUrl} target="_blank" rel="noreferrer">
-                <ExternalLink className="h-4 w-4" /> Nộp trực tuyến trên DVCQG
+                <ExternalLink className="h-4 w-4" /> Nộp trực tuyến
               </a>
             </Button>
           )}
