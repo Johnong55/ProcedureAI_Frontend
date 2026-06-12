@@ -72,6 +72,31 @@ export function resolveApiUrl(url: string | null | undefined): string {
   }
 }
 
+/**
+ * Build URL preview biểu mẫu inline (PDF native viewer).
+ *
+ * Input form_url chứa `/api/v1/forms/{file_id}?name=...` (BE proxy DVCQG).
+ * → đổi sang `/api/v1/forms/{file_id}/preview?name=...` → BE convert docx
+ * sang PDF nếu cần, trả Content-Disposition: inline.
+ *
+ * Trả "" nếu form_url không nhận diện được.
+ */
+export function buildPreviewUrl(formUrl: string | null | undefined): string {
+  if (!formUrl) return "";
+  const resolved = resolveApiUrl(formUrl);
+  if (!resolved) return "";
+  try {
+    const u = new URL(resolved);
+    // Path dạng /api/v1/forms/{file_id}?name=...
+    const m = u.pathname.match(/^(.*\/forms\/[^/]+)$/);
+    if (!m) return "";
+    u.pathname = m[1] + "/preview";
+    return u.toString();
+  } catch {
+    return "";
+  }
+}
+
 // ─── Token storage (localStorage) ─────────────────────────────────────────────
 
 const TOKEN_KEY = "hosoai.access_token";
