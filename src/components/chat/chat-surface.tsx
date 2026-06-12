@@ -12,6 +12,7 @@ import { ChatInput } from "./chat-input";
 import { FilterChips } from "./filter-chips";
 import { LandingHero } from "./landing-hero";
 import { SectionChipDock } from "./section-chip-dock";
+import { FormPreviewPanel } from "./form-preview-panel";
 
 export function ChatSurface({
   sessionId,
@@ -39,6 +40,8 @@ export function ChatSurface({
   >({});
   // Phase 11: đang sinh hướng dẫn điền form nào — show spinner trên button.
   const [pendingFormGuideId, setPendingFormGuideId] = useState<string | null>(null);
+  // Form đang preview ở side panel bên phải. null = panel ẩn.
+  const [previewForm, setPreviewForm] = useState<FormItem | null>(null);
   // Dock chip ẩn mặc định — user click button "Xem nội dung khác" để mở.
   // Mỗi procedure_focus mới (msg.id mới) → reset về ẩn để user chủ động mở lại.
   const [openedDockMsgId, setOpenedDockMsgId] = useState<string | null>(null);
@@ -425,7 +428,8 @@ export function ChatSurface({
   const isEmpty = !session || session.messages.length === 0;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full">
+    <div className="flex h-full min-w-0 flex-1 flex-col">
       <div className="border-b bg-card/40 backdrop-blur supports-[backdrop-filter]:bg-card/40">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 py-3">
           <div className="min-w-0">
@@ -455,6 +459,7 @@ export function ChatSurface({
                   msg={m}
                   onRequestFormGuide={handleRequestFormGuide}
                   pendingFormGuideId={pendingFormGuideId}
+                  onPreviewForm={setPreviewForm}
                 />
               ),
             )}
@@ -546,6 +551,8 @@ export function ChatSurface({
           </p>
         </div>
       </div>
+    </div>
+    <FormPreviewPanel form={previewForm} onClose={() => setPreviewForm(null)} />
     </div>
   );
 }

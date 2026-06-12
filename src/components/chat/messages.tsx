@@ -1,14 +1,8 @@
-import { memo, useState } from "react";
+import { memo } from "react";
 import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText, Pencil, Eye } from "lucide-react";
 import type { ChatMessage, FormItem, Source } from "@/lib/types";
 import { resolveApiUrl, buildPreviewUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { FormDownloadCard } from "./form-card";
 import { StepCard } from "./step-card";
 import { FeeBadge } from "./fee-badge";
@@ -69,10 +63,12 @@ export const AssistantMessage = memo(function AssistantMessage({
   msg,
   onRequestFormGuide,
   pendingFormGuideId,
+  onPreviewForm,
 }: {
   msg: ChatMessage;
   onRequestFormGuide?: (form: FormItem) => void;
   pendingFormGuideId?: string | null;
+  onPreviewForm?: (form: FormItem) => void;
 }) {
   // Chỉ render các chunk_type CÓ GIÁ TRỊ HIỂN THỊ THÊM ngoài text:
   // - "form": có link tải biểu mẫu
@@ -124,6 +120,7 @@ export const AssistantMessage = memo(function AssistantMessage({
             forms={msg.forms}
             onRequestFormGuide={onRequestFormGuide}
             pendingFormGuideId={pendingFormGuideId}
+            onPreviewForm={onPreviewForm}
           />
         )}
 
@@ -163,13 +160,13 @@ function FormsList({
   forms,
   onRequestFormGuide,
   pendingFormGuideId,
+  onPreviewForm,
 }: {
   forms: FormItem[];
   onRequestFormGuide?: (form: FormItem) => void;
   pendingFormGuideId?: string | null;
+  onPreviewForm?: (form: FormItem) => void;
 }) {
-  const [previewForm, setPreviewForm] = useState<FormItem | null>(null);
-
   // Dedupe theo url
   const seen = new Set<string>();
   const unique = forms.filter((f) => {
@@ -213,12 +210,12 @@ function FormsList({
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {previewUrl && (
+                {previewUrl && onPreviewForm && (
                   <Button
                     size="sm"
                     variant="outline"
                     className="gap-1.5"
-                    onClick={() => setPreviewForm(f)}
+                    onClick={() => onPreviewForm(f)}
                   >
                     <Eye className="h-4 w-4" /> Xem trước
                   </Button>
@@ -247,55 +244,7 @@ function FormsList({
           </div>
         );
       })}
-      <FormPreviewDialog
-        form={previewForm}
-        onClose={() => setPreviewForm(null)}
-      />
     </div>
-  );
-}
-
-function FormPreviewDialog({
-  form,
-  onClose,
-}: {
-  form: FormItem | null;
-  onClose: () => void;
-}) {
-  const previewUrl = form ? buildPreviewUrl(form.url) : "";
-  const downloadUrl = form ? resolveApiUrl(form.url) : "";
-  return (
-    <Dialog open={!!form} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex h-[90vh] max-w-5xl flex-col gap-3 p-4">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <FileText className="h-4 w-4 text-primary" />
-            <span className="truncate">{form?.name || "Xem trước biểu mẫu"}</span>
-          </DialogTitle>
-        </DialogHeader>
-        {previewUrl ? (
-          <iframe
-            key={previewUrl}
-            src={previewUrl}
-            className="min-h-0 flex-1 rounded-lg border bg-muted"
-            title={form?.name || "Form preview"}
-          />
-        ) : (
-          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-            Không tạo được URL xem trước.
-          </div>
-        )}
-        <div className="flex justify-end">
-          {downloadUrl && (
-            <Button asChild size="sm" className="gap-1.5">
-              <a href={downloadUrl} target="_blank" rel="noreferrer">
-                <FileDown className="h-4 w-4" /> Tải về bản gốc
-              </a>
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
 
