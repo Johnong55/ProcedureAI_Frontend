@@ -64,7 +64,8 @@ function ProceduresList() {
   const totalPages = data?.total_pages ?? 1;
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="h-full overflow-y-auto">
+      <div className="container mx-auto px-4 py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Thư viện thủ tục hành chính</h1>
         <p className="text-sm text-muted-foreground">
@@ -179,6 +180,7 @@ function ProceduresList() {
           </Button>
         </div>
       )}
+      </div>
     </div>
   );
 }

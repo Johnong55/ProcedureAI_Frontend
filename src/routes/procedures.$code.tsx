@@ -44,23 +44,27 @@ function ProcedureDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="h-full overflow-y-auto">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="container mx-auto max-w-3xl px-4 py-10">
-        <Card>
-          <CardContent className="py-10 text-center">
-            <p className="text-sm text-destructive">Không tìm thấy thủ tục mã "{code}"</p>
-            <Button asChild variant="outline" className="mt-4">
-              <Link to="/procedures">Quay lại danh sách</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="h-full overflow-y-auto">
+        <div className="container mx-auto max-w-3xl px-4 py-10">
+          <Card>
+            <CardContent className="py-10 text-center">
+              <p className="text-sm text-destructive">Không tìm thấy thủ tục mã "{code}"</p>
+              <Button asChild variant="outline" className="mt-4">
+                <Link to="/procedures">Quay lại danh sách</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -101,7 +105,8 @@ function ProcedureDetail() {
   };
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-6">
+    <div className="h-full overflow-y-auto">
+      <div className="container mx-auto max-w-4xl px-4 py-6">
       <Button variant="ghost" size="sm" asChild className="mb-3 gap-1">
         <Link to="/procedures">
           <ArrowLeft className="h-4 w-4" /> Quay lại danh sách
@@ -309,6 +314,7 @@ function ProcedureDetail() {
           </p>
         </Section>
       )}
+      </div>
     </div>
   );
 }
