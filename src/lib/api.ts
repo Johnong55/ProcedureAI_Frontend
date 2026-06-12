@@ -27,6 +27,9 @@ import type {
   FeedbackResponse,
   LoginRequest,
   PaginatedResponse,
+  ProcedureDetail,
+  ProcedureListItem,
+  ProcedureSearchParams,
   RAGStats,
   RegisterRequest,
   SectionRequest,
@@ -263,6 +266,24 @@ export const api = {
   feedback: {
     submit: (data: FeedbackCreateRequest) =>
       request<FeedbackResponse>("/feedback", { method: "POST", body: data }),
+  },
+
+  // Procedures browse (Phase 14) — công khai, không cần auth
+  procedures: {
+    search: (params: ProcedureSearchParams = {}) => {
+      const qs = new URLSearchParams();
+      if (params.q) qs.set("q", params.q);
+      if (params.domain) qs.set("domain", params.domain);
+      if (params.authority_level) qs.set("authority_level", params.authority_level);
+      qs.set("page", String(params.page ?? 1));
+      qs.set("page_size", String(params.page_size ?? 12));
+      return request<PaginatedResponse<ProcedureListItem>>(
+        `/procedures?${qs.toString()}`,
+      );
+    },
+    // procedure_id chấp nhận cả UUID lẫn code (vd "1.001612")
+    get: (codeOrId: string) =>
+      request<ProcedureDetail>(`/procedures/${encodeURIComponent(codeOrId)}`),
   },
 
   // Admin

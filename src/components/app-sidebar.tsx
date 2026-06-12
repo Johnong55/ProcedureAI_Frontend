@@ -65,11 +65,22 @@ export function AppSidebar() {
             </span>
           </div>
         </div>
-        <div className="px-2 pb-2">
+        <div className="space-y-1.5 px-2 pb-2">
           <Button asChild className="w-full justify-start gap-2" size="sm">
             <Link to="/">
               <Plus className="h-4 w-4" />
               Cuộc trò chuyện mới
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="w-full justify-start gap-2"
+            size="sm"
+          >
+            <Link to="/procedures">
+              <FileText className="h-4 w-4" />
+              Thư viện thủ tục
             </Link>
           </Button>
         </div>

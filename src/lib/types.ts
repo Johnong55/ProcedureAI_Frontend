@@ -360,6 +360,88 @@ export interface TopProcedureItem {
   avg_rating?: number | null;
 }
 
+// ─── Procedure browse (Phase 14) ─────────────────────────────────────────────
+
+export type AuthorityLevel = "central" | "provincial" | "district" | "commune";
+export type ProcedureStatus =
+  | "draft"
+  | "active"
+  | "inactive"
+  | "expired"
+  | "replaced";
+
+export interface ProcedureListItem {
+  id: string;
+  code: string;
+  name: string;
+  domain: string;
+  authority_level: AuthorityLevel;
+  implementing_agency: string | null;
+  processing_time: string | null;
+  fee: string | null;
+  status: ProcedureStatus;
+  version: number;
+  effective_date: string | null;
+  created_at: string;
+}
+
+export interface RequirementItem {
+  id: string;
+  name: string;
+  description: string | null;
+  case_group: string | null;
+  form_name: string | null;
+  form_url: string | null;
+  form_parse_status: "ok" | "failed" | "unsupported" | null;
+  quantity: string | null;
+  document_type: string | null;
+  note: string | null;
+  is_mandatory: boolean;
+  order: number;
+}
+
+export interface StepItem {
+  id: string;
+  step_order: number;
+  title: string;
+  description: string | null;
+  responsible_party: string | null;
+  duration: string | null;
+}
+
+export interface FeeItem {
+  id: string;
+  submission_method: string;
+  processing_time: string | null;
+  amount_text: string | null;
+  description: string | null;
+  order: number;
+}
+
+export interface ProcedureDetail extends ProcedureListItem {
+  description: string | null;
+  legal_basis: string | null;
+  result: string | null;
+  coordinating_agency: string | null;
+  authority: string | null;
+  formality_id: string | null;
+  requirements: RequirementItem[];
+  steps: StepItem[];
+  fees: FeeItem[];
+  parent_id: string | null;
+  replaced_by: string | null;
+  expired_date: string | null;
+  updated_at: string;
+}
+
+export interface ProcedureSearchParams {
+  q?: string;
+  domain?: string;
+  authority_level?: AuthorityLevel;
+  page?: number;
+  page_size?: number;
+}
+
 export interface RAGStats {
   // Tổng quan
   total_procedures: number;

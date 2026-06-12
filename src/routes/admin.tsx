@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Users,
   Database,
+  FileText,
   ArrowLeft,
   Loader2,
   ShieldOff,
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/admin")({
 const NAV = [
   { to: "/admin", label: "Tổng quan", icon: LayoutDashboard, exact: true },
   { to: "/admin/users", label: "Người dùng", icon: Users, exact: false },
+  { to: "/procedures", label: "Thủ tục", icon: FileText, exact: false },
   { to: "/admin/sources", label: "Nguồn dữ liệu", icon: Database, exact: false },
 ];
 

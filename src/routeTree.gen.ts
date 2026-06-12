@@ -15,7 +15,9 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProceduresIndexRouteImport } from './routes/procedures.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as ProceduresCodeRouteImport } from './routes/procedures.$code'
 import { Route as CSessionIdRouteImport } from './routes/c.$sessionId'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminSourcesRouteImport } from './routes/admin.sources'
@@ -51,10 +53,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProceduresIndexRoute = ProceduresIndexRouteImport.update({
+  id: '/procedures/',
+  path: '/procedures/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const ProceduresCodeRoute = ProceduresCodeRouteImport.update({
+  id: '/procedures/$code',
+  path: '/procedures/$code',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CSessionIdRoute = CSessionIdRouteImport.update({
   id: '/c/$sessionId',
@@ -87,7 +99,9 @@ export interface FileRoutesByFullPath {
   '/admin/sources': typeof AdminSourcesRoute
   '/admin/users': typeof AdminUsersRoute
   '/c/$sessionId': typeof CSessionIdRoute
+  '/procedures/$code': typeof ProceduresCodeRoute
   '/admin/': typeof AdminIndexRoute
+  '/procedures/': typeof ProceduresIndexRoute
   '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
 }
 export interface FileRoutesByTo {
@@ -99,7 +113,9 @@ export interface FileRoutesByTo {
   '/admin/sources': typeof AdminSourcesRoute
   '/admin/users': typeof AdminUsersRoute
   '/c/$sessionId': typeof CSessionIdRoute
+  '/procedures/$code': typeof ProceduresCodeRoute
   '/admin': typeof AdminIndexRoute
+  '/procedures': typeof ProceduresIndexRoute
   '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
 }
 export interface FileRoutesById {
@@ -113,7 +129,9 @@ export interface FileRoutesById {
   '/admin/sources': typeof AdminSourcesRoute
   '/admin/users': typeof AdminUsersRoute
   '/c/$sessionId': typeof CSessionIdRoute
+  '/procedures/$code': typeof ProceduresCodeRoute
   '/admin/': typeof AdminIndexRoute
+  '/procedures/': typeof ProceduresIndexRoute
   '/admin/sources_/$sourceId': typeof AdminSourcesSourceIdRoute
 }
 export interface FileRouteTypes {
@@ -128,7 +146,9 @@ export interface FileRouteTypes {
     | '/admin/sources'
     | '/admin/users'
     | '/c/$sessionId'
+    | '/procedures/$code'
     | '/admin/'
+    | '/procedures/'
     | '/admin/sources/$sourceId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -140,7 +160,9 @@ export interface FileRouteTypes {
     | '/admin/sources'
     | '/admin/users'
     | '/c/$sessionId'
+    | '/procedures/$code'
     | '/admin'
+    | '/procedures'
     | '/admin/sources/$sourceId'
   id:
     | '__root__'
@@ -153,7 +175,9 @@ export interface FileRouteTypes {
     | '/admin/sources'
     | '/admin/users'
     | '/c/$sessionId'
+    | '/procedures/$code'
     | '/admin/'
+    | '/procedures/'
     | '/admin/sources_/$sourceId'
   fileRoutesById: FileRoutesById
 }
@@ -165,6 +189,8 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   CSessionIdRoute: typeof CSessionIdRoute
+  ProceduresCodeRoute: typeof ProceduresCodeRoute
+  ProceduresIndexRoute: typeof ProceduresIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -211,12 +237,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/procedures/': {
+      id: '/procedures/'
+      path: '/procedures'
+      fullPath: '/procedures/'
+      preLoaderRoute: typeof ProceduresIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/procedures/$code': {
+      id: '/procedures/$code'
+      path: '/procedures/$code'
+      fullPath: '/procedures/$code'
+      preLoaderRoute: typeof ProceduresCodeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/c/$sessionId': {
       id: '/c/$sessionId'
@@ -273,6 +313,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   CSessionIdRoute: CSessionIdRoute,
+  ProceduresCodeRoute: ProceduresCodeRoute,
+  ProceduresIndexRoute: ProceduresIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
