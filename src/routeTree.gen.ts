@@ -16,8 +16,10 @@ import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProceduresIndexRouteImport } from './routes/procedures.index'
+import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ProceduresCodeRouteImport } from './routes/procedures.$code'
+import { Route as NewsIdRouteImport } from './routes/news.$id'
 import { Route as CSessionIdRouteImport } from './routes/c.$sessionId'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminSourcesRouteImport } from './routes/admin.sources'
@@ -58,6 +60,11 @@ const ProceduresIndexRoute = ProceduresIndexRouteImport.update({
   path: '/procedures/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewsIndexRoute = NewsIndexRouteImport.update({
+  id: '/news/',
+  path: '/news/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -66,6 +73,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const ProceduresCodeRoute = ProceduresCodeRouteImport.update({
   id: '/procedures/$code',
   path: '/procedures/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsIdRoute = NewsIdRouteImport.update({
+  id: '/news/$id',
+  path: '/news/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CSessionIdRoute = CSessionIdRouteImport.update({
@@ -99,8 +111,10 @@ export interface FileRoutesByFullPath {
   '/admin/sources': typeof AdminSourcesRoute
   '/admin/users': typeof AdminUsersRoute
   '/c/$sessionId': typeof CSessionIdRoute
+  '/news/$id': typeof NewsIdRoute
   '/procedures/$code': typeof ProceduresCodeRoute
   '/admin/': typeof AdminIndexRoute
+  '/news/': typeof NewsIndexRoute
   '/procedures/': typeof ProceduresIndexRoute
   '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
 }
@@ -113,8 +127,10 @@ export interface FileRoutesByTo {
   '/admin/sources': typeof AdminSourcesRoute
   '/admin/users': typeof AdminUsersRoute
   '/c/$sessionId': typeof CSessionIdRoute
+  '/news/$id': typeof NewsIdRoute
   '/procedures/$code': typeof ProceduresCodeRoute
   '/admin': typeof AdminIndexRoute
+  '/news': typeof NewsIndexRoute
   '/procedures': typeof ProceduresIndexRoute
   '/admin/sources/$sourceId': typeof AdminSourcesSourceIdRoute
 }
@@ -129,8 +145,10 @@ export interface FileRoutesById {
   '/admin/sources': typeof AdminSourcesRoute
   '/admin/users': typeof AdminUsersRoute
   '/c/$sessionId': typeof CSessionIdRoute
+  '/news/$id': typeof NewsIdRoute
   '/procedures/$code': typeof ProceduresCodeRoute
   '/admin/': typeof AdminIndexRoute
+  '/news/': typeof NewsIndexRoute
   '/procedures/': typeof ProceduresIndexRoute
   '/admin/sources_/$sourceId': typeof AdminSourcesSourceIdRoute
 }
@@ -146,8 +164,10 @@ export interface FileRouteTypes {
     | '/admin/sources'
     | '/admin/users'
     | '/c/$sessionId'
+    | '/news/$id'
     | '/procedures/$code'
     | '/admin/'
+    | '/news/'
     | '/procedures/'
     | '/admin/sources/$sourceId'
   fileRoutesByTo: FileRoutesByTo
@@ -160,8 +180,10 @@ export interface FileRouteTypes {
     | '/admin/sources'
     | '/admin/users'
     | '/c/$sessionId'
+    | '/news/$id'
     | '/procedures/$code'
     | '/admin'
+    | '/news'
     | '/procedures'
     | '/admin/sources/$sourceId'
   id:
@@ -175,8 +197,10 @@ export interface FileRouteTypes {
     | '/admin/sources'
     | '/admin/users'
     | '/c/$sessionId'
+    | '/news/$id'
     | '/procedures/$code'
     | '/admin/'
+    | '/news/'
     | '/procedures/'
     | '/admin/sources_/$sourceId'
   fileRoutesById: FileRoutesById
@@ -189,7 +213,9 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   CSessionIdRoute: typeof CSessionIdRoute
+  NewsIdRoute: typeof NewsIdRoute
   ProceduresCodeRoute: typeof ProceduresCodeRoute
+  NewsIndexRoute: typeof NewsIndexRoute
   ProceduresIndexRoute: typeof ProceduresIndexRoute
 }
 
@@ -244,6 +270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProceduresIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/news/': {
+      id: '/news/'
+      path: '/news'
+      fullPath: '/news/'
+      preLoaderRoute: typeof NewsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
@@ -256,6 +289,13 @@ declare module '@tanstack/react-router' {
       path: '/procedures/$code'
       fullPath: '/procedures/$code'
       preLoaderRoute: typeof ProceduresCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news/$id': {
+      id: '/news/$id'
+      path: '/news/$id'
+      fullPath: '/news/$id'
+      preLoaderRoute: typeof NewsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/c/$sessionId': {
@@ -313,19 +353,11 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   CSessionIdRoute: CSessionIdRoute,
+  NewsIdRoute: NewsIdRoute,
   ProceduresCodeRoute: ProceduresCodeRoute,
+  NewsIndexRoute: NewsIndexRoute,
   ProceduresIndexRoute: ProceduresIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

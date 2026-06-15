@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, MessageSquare, Trash2, FileText, ShieldCheck, LogIn, Sparkles, Cloud, HardDrive, Loader2 } from "lucide-react";
+import { Plus, MessageSquare, Trash2, FileText, ShieldCheck, LogIn, Sparkles, Cloud, HardDrive, Loader2, Newspaper } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,6 +81,17 @@ export function AppSidebar() {
             <Link to="/procedures">
               <FileText className="h-4 w-4" />
               Thư viện thủ tục
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="w-full justify-start gap-2"
+            size="sm"
+          >
+            <Link to="/news">
+              <Newspaper className="h-4 w-4" />
+              Tin tức
             </Link>
           </Button>
         </div>

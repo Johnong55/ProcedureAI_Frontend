@@ -449,6 +449,27 @@ export interface SourceOption {
   kind: "agency" | "province";
 }
 
+// ── Tin tức (DVCQG news) ────────────────────────────────────────────────────
+export interface NewsItem {
+  id: string;
+  title: string;
+  short_description: string | null;
+  category_id: string | null;
+  created_at: number | null;  // epoch ms
+  updated_at: number | null;
+  order: number | null;
+}
+
+export interface NewsListResponse {
+  items: NewsItem[];
+  last_id: string | null;
+  total: number;
+}
+
+export interface NewsDetail extends NewsItem {
+  content: string;  // HTML
+}
+
 export interface RAGStats {
   // Tổng quan
   total_procedures: number;

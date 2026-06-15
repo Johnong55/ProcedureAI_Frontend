@@ -179,3 +179,60 @@
     30% { transform: translateY(-4px); opacity: 1; }
   }
 }
+
+/* News article content (HTML from DVCQG news API) */
+.news-content h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.news-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.news-content h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+.news-content p {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+.news-content ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+.news-content ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+.news-content li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+.news-content a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.news-content strong {
+  font-weight: 600;
+}
+.news-content hr {
+  margin: 1.5rem 0;
+  border-color: var(--border);
+}
+.news-content blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+  color: var(--muted-foreground);
+}

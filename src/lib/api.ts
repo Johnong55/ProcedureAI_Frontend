@@ -30,6 +30,8 @@ import type {
   ProcedureDetail,
   ProcedureListItem,
   ProcedureSearchParams,
+  NewsListResponse,
+  NewsDetail,
   SourceOption,
   RAGStats,
   RegisterRequest,
@@ -313,6 +315,19 @@ export const api = {
       request<ProcedureDetail>(`/procedures/${encodeURIComponent(codeOrId)}`),
     // List bộ + tỉnh đã crawl (public, build dropdown filter)
     listSources: () => request<SourceOption[]>("/procedures/sources"),
+  },
+
+  // News (tin tức DVCQG) — công khai, không cần auth
+  news: {
+    list: (params: { limit?: number; last_id?: string; q?: string } = {}) => {
+      const qs = new URLSearchParams();
+      qs.set("limit", String(params.limit ?? 9));
+      if (params.last_id) qs.set("last_id", params.last_id);
+      if (params.q) qs.set("q", params.q);
+      return request<NewsListResponse>(`/news?${qs.toString()}`, { noAuth: true });
+    },
+    get: (id: string) =>
+      request<NewsDetail>(`/news/${encodeURIComponent(id)}`, { noAuth: true }),
   },
 
   // Admin
