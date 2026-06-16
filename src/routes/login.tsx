@@ -96,15 +96,12 @@ function LoginPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Mật khẩu</Label>
-                <button
-                  type="button"
+                <Link
+                  to="/forgot-password"
                   className="text-xs text-muted-foreground hover:text-primary"
-                  onClick={() =>
-                    toast.info("Tính năng quên mật khẩu sẽ sớm có")
-                  }
                 >
                   Quên mật khẩu?
-                </button>
+                </Link>
               </div>
               <div className="relative">
                 <Input

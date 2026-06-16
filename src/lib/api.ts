@@ -264,6 +264,18 @@ export const api = {
       request<User>("/auth/me", { method: "PUT", body: data }),
     changePassword: (data: ChangePasswordRequest) =>
       request<{ message: string }>("/auth/change-password", { method: "POST", body: data }),
+    forgotPassword: (email: string) =>
+      request<{ message: string }>("/auth/forgot-password", {
+        method: "POST",
+        body: { email },
+        noAuth: true,
+      }),
+    resetPassword: (token: string, new_password: string) =>
+      request<{ message: string }>("/auth/reset-password", {
+        method: "POST",
+        body: { token, new_password },
+        noAuth: true,
+      }),
   },
 
   // Chat
