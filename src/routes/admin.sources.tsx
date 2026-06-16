@@ -490,7 +490,10 @@ function AdminSources() {
                         <Badge variant="outline">{s.source_type}</Badge>
                       </TableCell>
                       <TableCell>
-                        <CrawlStatusBadge status={s.crawl_status} />
+                        <CrawlStatusBadge
+                          status={s.crawl_status}
+                          errorMessage={s.error_message}
+                        />
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {formatDateTime(s.last_crawled_at)}
@@ -627,25 +630,41 @@ function SourceProceduresPreview({ sourceId }: { sourceId: string }) {
   );
 }
 
-function CrawlStatusBadge({ status }: { status: CrawlStatus }) {
+function CrawlStatusBadge({
+  status,
+  errorMessage,
+}: {
+  status: CrawlStatus;
+  errorMessage?: string | null;
+}) {
+  // Legacy: nhiều record cũ có status='failed' nhưng error_message bắt đầu bằng
+  // "Không có thủ tục" — đây thực ra là nguồn rỗng, không phải lỗi. Override
+  // hiển thị thành amber "Chưa có dữ liệu" để khớp với behavior mới.
+  const isEmptyMasqueradingAsFailed =
+    status === "failed" &&
+    !!errorMessage &&
+    errorMessage.startsWith("Không có thủ tục");
+
+  const effectiveStatus = isEmptyMasqueradingAsFailed ? "empty" : status;
+
   const map: Record<string, { Icon: typeof Clock; label: string; className: string }> = {
     pending: { Icon: Clock, label: "Chờ", className: "bg-muted text-muted-foreground" },
     crawling: { Icon: Hourglass, label: "Đang crawl", className: "bg-blue-500/10 text-blue-600" },
     success: { Icon: CheckCircle2, label: "Thành công", className: "bg-emerald-500/10 text-emerald-600" },
     failed: { Icon: XCircle, label: "Thất bại", className: "bg-destructive/10 text-destructive" },
-    skipped: { Icon: MinusCircle, label: "Bỏ qua", className: "bg-amber-500/10 text-amber-600" },
+    skipped: { Icon: MinusCircle, label: "Chưa có dữ liệu", className: "bg-amber-500/10 text-amber-600" },
     empty: { Icon: AlertTriangle, label: "Chưa có dữ liệu", className: "bg-amber-500/10 text-amber-600" },
     unsupported: { Icon: AlertTriangle, label: "Không hỗ trợ", className: "bg-amber-500/10 text-amber-600" },
   };
-  const entry = map[status as string] ?? {
+  const entry = map[effectiveStatus as string] ?? {
     Icon: HelpCircle,
-    label: String(status ?? "—"),
+    label: String(effectiveStatus ?? "—"),
     className: "bg-muted text-muted-foreground",
   };
   const { Icon, label, className } = entry;
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${className}`}>
-      <Icon className={`h-3 w-3 ${status === "crawling" ? "animate-spin" : ""}`} />
+      <Icon className={`h-3 w-3 ${effectiveStatus === "crawling" ? "animate-spin" : ""}`} />
       {label}
     </span>
   );
