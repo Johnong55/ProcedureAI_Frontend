@@ -216,6 +216,25 @@ export function ChatSurface({
     [session, navigate, isAuthenticated, queryClient],
   );
 
+  // Helper: scroll tới message đã xem trước đó + highlight ngắn
+  const scrollToExistingMessage = useCallback((messageId: string | null | undefined) => {
+    if (!messageId) return false;
+    // Tìm theo cả id local lẫn backend_message_id (BE có thể trả lại 1 trong 2)
+    const el =
+      (document.querySelector(`[data-message-id="${messageId}"]`) as HTMLElement | null) ||
+      (document.querySelector(
+        `[data-backend-message-id="${messageId}"]`,
+      ) as HTMLElement | null);
+    if (!el) return false;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Highlight pulse — ring vàng/amber ~2.5s rồi tự gỡ
+    el.classList.add("ring-2", "ring-amber-400", "bg-amber-50/50");
+    setTimeout(() => {
+      el.classList.remove("ring-2", "ring-amber-400", "bg-amber-50/50");
+    }, 2500);
+    return true;
+  }, []);
+
   // ── Chip click: fetch section → append USER (label chip) + ASSISTANT msg ────
   const handleSelectChip = useCallback(
     async (sourceMsgId: string, procedureCode: string, sectionType: SectionType) => {
@@ -230,11 +249,17 @@ export function ChatSurface({
         });
 
         // Idempotent: BE phát hiện chip đã click trước → trả message cũ.
-        // Không append duplicate, chỉ thông báo nhẹ.
+        // Không append duplicate, scroll tới message đã có + highlight để
+        // người dùng thấy ngay vị trí cũ thay vì phải tự cuộn tìm.
         if (res.is_reuse) {
-          toast.info("Mục này đã xem rồi", {
-            description: "Cuộn lên để xem nội dung.",
-          });
+          const targetId = res.user_message_id || res.message_id;
+          const scrolled = scrollToExistingMessage(targetId);
+          if (!scrolled) {
+            // Fallback nếu không tìm thấy DOM (vd: message bị lazy-render)
+            toast.info("Mục này đã xem rồi", {
+              description: "Cuộn lên để xem nội dung.",
+            });
+          }
           return;
         }
 
@@ -279,7 +304,7 @@ export function ChatSurface({
         setPendingChipState(null);
       }
     },
-    [session, isAuthenticated],
+    [session, isAuthenticated, scrollToExistingMessage],
   );
 
   // ── Phase 11: Click "Hướng dẫn điền" trên form card ───────────────────────
@@ -296,9 +321,13 @@ export function ChatSurface({
         });
 
         if (res.is_reuse) {
-          toast.info("Hướng dẫn này đã xem rồi", {
-            description: "Cuộn lên để xem nội dung.",
-          });
+          const targetId = res.user_message_id || res.message_id;
+          const scrolled = scrollToExistingMessage(targetId);
+          if (!scrolled) {
+            toast.info("Hướng dẫn này đã xem rồi", {
+              description: "Cuộn lên để xem nội dung.",
+            });
+          }
           return;
         }
 
@@ -341,7 +370,7 @@ export function ChatSurface({
         setPendingFormGuideId(null);
       }
     },
-    [session, isAuthenticated],
+    [session, isAuthenticated, scrollToExistingMessage],
   );
 
   // Tập chip đã click trên từng intro message — để dock ẩn chip đã xem.
@@ -464,20 +493,26 @@ export function ChatSurface({
           <LandingHero onPick={(q) => setPrefill(q)} />
         ) : (
           <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
-            {session!.messages.map((m) =>
-              m.role === "user" ? (
-                <UserMessage key={m.id} msg={m} />
-              ) : (
-                <AssistantMessage
-                  key={m.id}
-                  msg={m}
-                  onRequestFormGuide={handleRequestFormGuide}
-                  pendingFormGuideId={pendingFormGuideId}
-                  onPreviewForm={setPreviewForm}
-                  isGuest={!isAuthenticated}
-                />
-              ),
-            )}
+            {session!.messages.map((m) => (
+              <div
+                key={m.id}
+                data-message-id={m.id}
+                data-backend-message-id={m.backend_message_id ?? ""}
+                className="scroll-mt-24 transition-all duration-500 rounded-xl"
+              >
+                {m.role === "user" ? (
+                  <UserMessage msg={m} />
+                ) : (
+                  <AssistantMessage
+                    msg={m}
+                    onRequestFormGuide={handleRequestFormGuide}
+                    pendingFormGuideId={pendingFormGuideId}
+                    onPreviewForm={setPreviewForm}
+                    isGuest={!isAuthenticated}
+                  />
+                )}
+              </div>
+            ))}
             {loading && <TypingIndicator />}
           </div>
         )}
