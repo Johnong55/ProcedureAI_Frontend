@@ -1,5 +1,7 @@
 import { memo } from "react";
-import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText, Pencil, Eye } from "lucide-react";
+import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText, Lock, Pencil, Eye } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type { ChatMessage, FormItem, Source } from "@/lib/types";
 import { resolveApiUrl, buildPreviewUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -64,11 +66,13 @@ export const AssistantMessage = memo(function AssistantMessage({
   onRequestFormGuide,
   pendingFormGuideId,
   onPreviewForm,
+  isGuest = false,
 }: {
   msg: ChatMessage;
   onRequestFormGuide?: (form: FormItem) => void;
   pendingFormGuideId?: string | null;
   onPreviewForm?: (form: FormItem) => void;
+  isGuest?: boolean;
 }) {
   // Chỉ render các chunk_type CÓ GIÁ TRỊ HIỂN THỊ THÊM ngoài text:
   // - "form": có link tải biểu mẫu
@@ -121,6 +125,7 @@ export const AssistantMessage = memo(function AssistantMessage({
             onRequestFormGuide={onRequestFormGuide}
             pendingFormGuideId={pendingFormGuideId}
             onPreviewForm={onPreviewForm}
+            isGuest={isGuest}
           />
         )}
 
@@ -161,11 +166,13 @@ function FormsList({
   onRequestFormGuide,
   pendingFormGuideId,
   onPreviewForm,
+  isGuest = false,
 }: {
   forms: FormItem[];
   onRequestFormGuide?: (form: FormItem) => void;
   pendingFormGuideId?: string | null;
   onPreviewForm?: (form: FormItem) => void;
+  isGuest?: boolean;
 }) {
   // Dedupe theo url
   const seen = new Set<string>();
@@ -244,7 +251,7 @@ function FormsList({
                 </Button>
               </div>
             </div>
-            {canGuide && onRequestFormGuide && (
+            {canGuide && onRequestFormGuide && !isGuest && (
               <div className="mt-2 flex justify-end">
                 <Button
                   size="sm"
@@ -255,6 +262,33 @@ function FormsList({
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   {isPending ? "Đang sinh hướng dẫn..." : "Hướng dẫn điền"}
+                </Button>
+              </div>
+            )}
+            {canGuide && isGuest && (
+              <div className="mt-2 flex items-center justify-end gap-2">
+                <span className="text-[11px] text-muted-foreground">
+                  Đăng nhập để dùng AI hướng dẫn điền biểu mẫu
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  onClick={() =>
+                    toast.info("Tính năng dành cho thành viên", {
+                      description:
+                        "Đăng ký tài khoản miễn phí để được AI hướng dẫn cách điền từng mục trong biểu mẫu.",
+                      action: {
+                        label: "Đăng ký",
+                        onClick: () => {
+                          window.location.href = "/register";
+                        },
+                      },
+                    })
+                  }
+                >
+                  <Lock className="h-3.5 w-3.5" />
+                  Hướng dẫn điền
                 </Button>
               </div>
             )}

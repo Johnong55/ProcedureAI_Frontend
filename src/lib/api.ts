@@ -240,6 +240,11 @@ function extractErrorMessage(body: unknown): string | null {
     const first = obj.detail[0] as Record<string, unknown>;
     if (typeof first.msg === "string") return first.msg;
   }
+  // FastAPI cũng có thể trả { detail: { message: "...", ... } } cho error structured
+  if (obj.detail && typeof obj.detail === "object" && !Array.isArray(obj.detail)) {
+    const d = obj.detail as Record<string, unknown>;
+    if (typeof d.message === "string") return d.message;
+  }
   if (typeof obj.message === "string") return obj.message;
   return null;
 }

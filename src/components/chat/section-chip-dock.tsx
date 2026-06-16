@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   ListChecks,
   Coins,
@@ -7,11 +9,17 @@ import {
   FileDown,
   GitBranch,
   Loader2,
+  Lock,
   MousePointerClick,
   Send,
   ExternalLink,
 } from "lucide-react";
 import type { ProcedureFocus, SectionType } from "@/lib/types";
+
+// Khách vãng lai chỉ được xem 2 section cơ bản. 3 section còn lại
+// (fees, agency, forms) yêu cầu đăng nhập — đây là cơ chế phân tầng
+// để khuyến khích người dùng tạo tài khoản.
+const GUEST_ALLOWED_CHIPS: SectionType[] = ["steps", "requirements"];
 
 const CHIP_META: Record<
   SectionType,
@@ -60,6 +68,11 @@ interface Props {
    * trên chip đã sẵn sàng.
    */
   cachedChips?: SectionType[];
+  /**
+   * Khách vãng lai → khóa các section nâng cao (fees, agency, forms).
+   * Click vào chip bị khóa hiện toast gợi ý đăng nhập.
+   */
+  isGuest?: boolean;
 }
 
 /**
@@ -75,6 +88,7 @@ export function SectionChipDock({
   pendingChip,
   viewedChips,
   cachedChips,
+  isGuest = false,
 }: Props) {
   const viewed = new Set(viewedChips ?? []);
   const cached = new Set(cachedChips ?? []);
@@ -129,7 +143,38 @@ export function SectionChipDock({
           if (!meta) return null;
           const isPending = pendingChip === chip;
           const isCached = cached.has(chip);
+          const isLocked = isGuest && !GUEST_ALLOWED_CHIPS.includes(chip);
           const { Icon } = meta;
+
+          if (isLocked) {
+            return (
+              <button
+                key={chip}
+                type="button"
+                onClick={() =>
+                  toast.info("Tính năng dành cho thành viên", {
+                    description:
+                      "Đăng ký tài khoản miễn phí để xem đầy đủ chi tiết về " +
+                      meta.label.toLowerCase() +
+                      ".",
+                    action: {
+                      label: "Đăng ký",
+                      onClick: () => {
+                        window.location.href = "/register";
+                      },
+                    },
+                  })
+                }
+                className="group relative inline-flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-500 shadow-sm transition hover:border-slate-400 hover:bg-slate-100 active:scale-95"
+                aria-label={`${meta.label} (cần đăng nhập)`}
+                title="Đăng nhập để xem"
+              >
+                <Lock className="h-3.5 w-3.5" />
+                {meta.label}
+              </button>
+            );
+          }
+
           return (
             <button
               key={chip}
@@ -160,6 +205,22 @@ export function SectionChipDock({
           );
         })}
       </div>
+
+      {/* Banner gợi ý nâng cấp cho guest */}
+      {isGuest && remaining.some((c) => !GUEST_ALLOWED_CHIPS.includes(c)) && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <Lock className="h-3 w-3" />
+          <span>
+            Đăng nhập để mở khóa Lệ phí, Cơ quan thực hiện và Biểu mẫu.
+          </span>
+          <Link
+            to="/login"
+            className="ml-auto font-semibold underline hover:no-underline"
+          >
+            Đăng nhập
+          </Link>
+        </div>
+      )}
 
       {/* Nút Nộp trực tuyến — tách riêng, prominent, action chính */}
       {submitUrl && (

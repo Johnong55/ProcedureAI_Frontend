@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sparkles, X } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { sessionStore } from "@/lib/sessions";
 import type { ChatMessage, ChatSession, FormItem, SectionType } from "@/lib/types";
@@ -193,8 +193,22 @@ export function ChatSurface({
         });
         setSession({ ...after });
       } catch (e) {
-        const err = e instanceof Error ? e.message : String(e);
-        toast.error("Không gửi được câu hỏi", { description: err });
+        if (e instanceof ApiError && e.status === 429) {
+          // Guest hết quota — gợi ý đăng ký với CTA rõ ràng
+          toast.warning("Đã hết lượt hỏi miễn phí hôm nay", {
+            description: e.message,
+            duration: 8000,
+            action: {
+              label: "Đăng ký ngay",
+              onClick: () => {
+                window.location.href = "/register";
+              },
+            },
+          });
+        } else {
+          const err = e instanceof Error ? e.message : String(e);
+          toast.error("Không gửi được câu hỏi", { description: err });
+        }
       } finally {
         setLoading(false);
       }
@@ -460,6 +474,7 @@ export function ChatSurface({
                   onRequestFormGuide={handleRequestFormGuide}
                   pendingFormGuideId={pendingFormGuideId}
                   onPreviewForm={setPreviewForm}
+                  isGuest={!isAuthenticated}
                 />
               ),
             )}
@@ -541,6 +556,7 @@ export function ChatSurface({
                   cachedChips={
                     cachedSectionsByCode[activeMsg.procedure_focus.code]
                   }
+                  isGuest={!isAuthenticated}
                 />
               </div>
             );
