@@ -225,6 +225,7 @@ export interface User {
   email_verified: boolean | null;
   last_login_at: string | null;
   created_at: string | null;
+  session_count?: number;
 }
 
 export interface LoginRequest {

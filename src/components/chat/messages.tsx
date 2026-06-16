@@ -207,6 +207,23 @@ function FormsList({
                       {f.form_name}
                     </div>
                   )}
+                  {f.parse_status === "unsupported" && (
+                    <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      Không hỗ trợ hướng dẫn AI
+                    </span>
+                  )}
+                  {f.parse_status === "failed" && (
+                    <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      Lỗi đọc biểu mẫu
+                    </span>
+                  )}
+                  {f.parse_status == null && f.requirement_id && (
+                    <span className="mt-1 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Chưa phân tích
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">

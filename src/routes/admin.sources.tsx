@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ChevronDown,
   ArrowRight,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -627,14 +628,16 @@ function SourceProceduresPreview({ sourceId }: { sourceId: string }) {
 }
 
 function CrawlStatusBadge({ status }: { status: CrawlStatus }) {
-  const map: Record<CrawlStatus, { Icon: typeof Clock; label: string; className: string }> = {
+  const map: Record<string, { Icon: typeof Clock; label: string; className: string }> = {
     pending: { Icon: Clock, label: "Chờ", className: "bg-muted text-muted-foreground" },
     crawling: { Icon: Hourglass, label: "Đang crawl", className: "bg-blue-500/10 text-blue-600" },
     success: { Icon: CheckCircle2, label: "Thành công", className: "bg-emerald-500/10 text-emerald-600" },
     failed: { Icon: XCircle, label: "Thất bại", className: "bg-destructive/10 text-destructive" },
-    skipped: { Icon: MinusCircle, label: "Bỏ qua", className: "bg-muted text-muted-foreground" },
+    skipped: { Icon: MinusCircle, label: "Bỏ qua", className: "bg-amber-500/10 text-amber-600" },
+    empty: { Icon: AlertTriangle, label: "Chưa có dữ liệu", className: "bg-amber-500/10 text-amber-600" },
+    unsupported: { Icon: AlertTriangle, label: "Không hỗ trợ", className: "bg-amber-500/10 text-amber-600" },
   };
-  const entry = map[status] ?? {
+  const entry = map[status as string] ?? {
     Icon: HelpCircle,
     label: String(status ?? "—"),
     className: "bg-muted text-muted-foreground",

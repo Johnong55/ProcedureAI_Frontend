@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, MoreVertical, Shield, ShieldOff, UserCog } from "lucide-react";
+import { Loader2, MessageSquare, MoreVertical, Shield, ShieldOff, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import {
@@ -76,6 +76,7 @@ function AdminUsers() {
               <TableHead>Email</TableHead>
               <TableHead>Vai trò</TableHead>
               <TableHead>Trạng thái</TableHead>
+              <TableHead>Số phiên</TableHead>
               <TableHead>Ngày tạo</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -83,14 +84,14 @@ function AdminUsers() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
+                <TableCell colSpan={7} className="py-12 text-center">
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && data?.items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
                   Chưa có người dùng
                 </TableCell>
               </TableRow>
@@ -125,6 +126,18 @@ function AdminUsers() {
                     <Badge variant={u.is_active ? "outline" : "destructive"}>
                       {u.is_active ? "Hoạt động" : "Vô hiệu"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {(u.session_count ?? 0) > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-sm font-medium">
+                        <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                        {u.session_count}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600">
+                        Chưa có
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {formatDateTime(u.created_at)}
