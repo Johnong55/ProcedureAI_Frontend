@@ -301,6 +301,38 @@ export interface CrawlDiffLog {
   removed_codes: string[];
 }
 
+export interface AdminProcedureItem {
+  id: string;
+  code: string;
+  name: string;
+  domain: string | null;
+  authority: string | null;
+  status: string;
+  chunk_count: number;
+  has_failed_forms: boolean;
+  last_crawled_at: string | null;
+  updated_at: string;
+}
+
+export interface AdminProcedureListResponse {
+  items: AdminProcedureItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export type AdminProcedureIssue =
+  | "orphan"
+  | "stale"
+  | "no_steps"
+  | "failed_forms"
+  | "inactive";
+
+export interface BulkActionResponse {
+  affected: number;
+  failed_codes: string[];
+}
+
 export interface DocumentSourceCreate {
   title: string;
   source_url: string;

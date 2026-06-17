@@ -25,6 +25,7 @@ import { Route as NewsIdRouteImport } from './routes/news.$id'
 import { Route as CSessionIdRouteImport } from './routes/c.$sessionId'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminSourcesRouteImport } from './routes/admin.sources'
+import { Route as AdminProceduresRouteImport } from './routes/admin.procedures'
 import { Route as AdminSourcesSourceIdRouteImport } from './routes/admin.sources_.$sourceId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -107,6 +108,11 @@ const AdminSourcesRoute = AdminSourcesRouteImport.update({
   path: '/sources',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminProceduresRoute = AdminProceduresRouteImport.update({
+  id: '/procedures',
+  path: '/procedures',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSourcesSourceIdRoute = AdminSourcesSourceIdRouteImport.update({
   id: '/sources_/$sourceId',
   path: '/sources/$sourceId',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/procedures': typeof AdminProceduresRoute
   '/admin/sources': typeof AdminSourcesRoute
   '/admin/users': typeof AdminUsersRoute
   '/c/$sessionId': typeof CSessionIdRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/procedures': typeof AdminProceduresRoute
   '/admin/sources': typeof AdminSourcesRoute
   '/admin/users': typeof AdminUsersRoute
   '/c/$sessionId': typeof CSessionIdRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/procedures': typeof AdminProceduresRoute
   '/admin/sources': typeof AdminSourcesRoute
   '/admin/users': typeof AdminUsersRoute
   '/c/$sessionId': typeof CSessionIdRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/reset-password'
+    | '/admin/procedures'
     | '/admin/sources'
     | '/admin/users'
     | '/c/$sessionId'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/reset-password'
+    | '/admin/procedures'
     | '/admin/sources'
     | '/admin/users'
     | '/c/$sessionId'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/reset-password'
+    | '/admin/procedures'
     | '/admin/sources'
     | '/admin/users'
     | '/c/$sessionId'
@@ -359,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSourcesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/procedures': {
+      id: '/admin/procedures'
+      path: '/procedures'
+      fullPath: '/admin/procedures'
+      preLoaderRoute: typeof AdminProceduresRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/sources_/$sourceId': {
       id: '/admin/sources_/$sourceId'
       path: '/sources/$sourceId'
@@ -370,6 +389,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminProceduresRoute: typeof AdminProceduresRoute
   AdminSourcesRoute: typeof AdminSourcesRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -377,6 +397,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminProceduresRoute: AdminProceduresRoute,
   AdminSourcesRoute: AdminSourcesRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,

@@ -34,6 +34,9 @@ import type {
   NewsDetail,
   SourceOption,
   CrawlDiffLog,
+  AdminProcedureListResponse,
+  AdminProcedureIssue,
+  BulkActionResponse,
   RAGStats,
   RegisterRequest,
   SectionRequest,
@@ -376,6 +379,45 @@ export const api = {
       request<CrawlDiffLog[]>(
         `/admin/sources/${id}/diff-history?limit=${limit}`,
       ),
+
+    // Admin procedures management (cleanup orphan/stale + bulk actions)
+    listProceduresAdmin: (params: {
+      q?: string;
+      issue?: AdminProcedureIssue;
+      stale_days?: number;
+      page?: number;
+      page_size?: number;
+    } = {}) => {
+      const qs = new URLSearchParams();
+      if (params.q) qs.set("q", params.q);
+      if (params.issue) qs.set("issue", params.issue);
+      if (params.stale_days) qs.set("stale_days", String(params.stale_days));
+      qs.set("page", String(params.page ?? 1));
+      qs.set("page_size", String(params.page_size ?? 20));
+      return request<AdminProcedureListResponse>(
+        `/admin/procedures?${qs.toString()}`,
+      );
+    },
+    deactivateProcedure: (code: string) =>
+      request<{ message: string }>(
+        `/admin/procedures/${encodeURIComponent(code)}/deactivate`,
+        { method: "PATCH" },
+      ),
+    activateProcedure: (code: string) =>
+      request<{ message: string }>(
+        `/admin/procedures/${encodeURIComponent(code)}/activate`,
+        { method: "PATCH" },
+      ),
+    bulkReEmbedProcedures: (codes: string[]) =>
+      request<BulkActionResponse>("/admin/procedures/bulk/re-embed", {
+        method: "POST",
+        body: { codes },
+      }),
+    bulkDeactivateProcedures: (codes: string[]) =>
+      request<BulkActionResponse>("/admin/procedures/bulk/deactivate", {
+        method: "POST",
+        body: { codes },
+      }),
 
     // Lấy danh sách bộ/ngành động từ Cổng DVCQG (không dùng file local)
     listAgencies: () => request<AgencyItem[]>("/admin/sources/agencies"),
