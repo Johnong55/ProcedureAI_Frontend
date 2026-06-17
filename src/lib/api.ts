@@ -33,6 +33,7 @@ import type {
   NewsListResponse,
   NewsDetail,
   SourceOption,
+  CrawlDiffLog,
   RAGStats,
   RegisterRequest,
   SectionRequest,
@@ -366,6 +367,15 @@ export const api = {
       }),
     deactivateSource: (id: string) =>
       request<{ message: string }>(`/admin/sources/${id}`, { method: "DELETE" }),
+    updateSourceSchedule: (id: string, crawl_frequency: string) =>
+      request<{ id: string; crawl_frequency: string; next_crawl_at: string | null }>(
+        `/admin/sources/${id}/schedule`,
+        { method: "PATCH", body: { crawl_frequency } },
+      ),
+    getSourceDiffHistory: (id: string, limit = 10) =>
+      request<CrawlDiffLog[]>(
+        `/admin/sources/${id}/diff-history?limit=${limit}`,
+      ),
 
     // Lấy danh sách bộ/ngành động từ Cổng DVCQG (không dùng file local)
     listAgencies: () => request<AgencyItem[]>("/admin/sources/agencies"),

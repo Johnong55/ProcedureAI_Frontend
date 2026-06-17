@@ -147,6 +147,17 @@ function AdminSources() {
       toast.error("Vô hiệu hoá thất bại", { description: e.message }),
   });
 
+  const scheduleMutation = useMutation({
+    mutationFn: ({ id, freq }: { id: string; freq: string }) =>
+      api.admin.updateSourceSchedule(id, freq),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "sources"] });
+      toast.success("Đã cập nhật tần suất crawl");
+    },
+    onError: (e: Error) =>
+      toast.error("Không cập nhật được", { description: e.message }),
+  });
+
   // ── Filtered agencies ─────────────────────────────────────────────────────────
   const filteredAgencies = useMemo(() => {
     const list = agenciesQuery.data ?? [];
@@ -439,14 +450,15 @@ function AdminSources() {
                 <TableHead>Nguồn</TableHead>
                 <TableHead>Loại</TableHead>
                 <TableHead>Trạng thái</TableHead>
-                <TableHead>Lần crawl cuối</TableHead>
+                <TableHead>Tần suất</TableHead>
+                <TableHead>Lịch crawl</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sourcesLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-12 text-center">
+                  <TableCell colSpan={6} className="py-12 text-center" key="loading-cell">
                     <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
                   </TableCell>
                 </TableRow>
@@ -495,8 +507,28 @@ function AdminSources() {
                           errorMessage={s.error_message}
                         />
                       </TableCell>
+                      <TableCell>
+                        <select
+                          className="rounded border bg-background px-2 py-1 text-xs"
+                          value={s.crawl_frequency || "weekly"}
+                          disabled={scheduleMutation.isPending || !s.is_active}
+                          onChange={(e) =>
+                            scheduleMutation.mutate({ id: s.id, freq: e.target.value })
+                          }
+                        >
+                          <option value="manual">Manual</option>
+                          <option value="daily">Daily</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="monthly">Monthly</option>
+                        </select>
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {formatDateTime(s.last_crawled_at)}
+                        <div>Cuối: {formatDateTime(s.last_crawled_at) || "—"}</div>
+                        {s.crawl_frequency !== "manual" && s.next_crawl_at && (
+                          <div className="mt-0.5">
+                            Kế tiếp: {formatDateTime(s.next_crawl_at)}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
@@ -533,7 +565,8 @@ function AdminSources() {
                     </TableRow>
                     {isOpen && (
                       <TableRow className="bg-muted/30">
-                        <TableCell colSpan={5} className="p-0">
+                        <TableCell colSpan={6} className="p-0">
+                          <DiffHistoryPanel sourceId={s.id} />
                           <SourceProceduresPreview sourceId={s.id} />
                         </TableCell>
                       </TableRow>
@@ -545,6 +578,70 @@ function AdminSources() {
           </Table>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function DiffHistoryPanel({ sourceId }: { sourceId: string }) {
+  const q = useQuery({
+    queryKey: ["admin", "source-diff-history", sourceId],
+    queryFn: () => api.admin.getSourceDiffHistory(sourceId, 5),
+    staleTime: 30_000,
+  });
+
+  if (q.isLoading) {
+    return (
+      <div className="border-b px-6 py-3 text-xs text-muted-foreground">
+        Đang tải lịch sử thay đổi…
+      </div>
+    );
+  }
+
+  const logs = q.data || [];
+  if (logs.length === 0) {
+    return null; // Chưa có lần crawl nào với diff → ẩn panel
+  }
+
+  return (
+    <div className="border-b bg-background/40 px-6 py-3">
+      <p className="mb-2 text-xs font-semibold text-muted-foreground">
+        Lịch sử thay đổi ({logs.length} lần gần nhất)
+      </p>
+      <div className="space-y-1">
+        {logs.map((log) => (
+          <div
+            key={log.id}
+            className="flex flex-wrap items-center gap-2 rounded border bg-card px-3 py-1.5 text-xs"
+          >
+            <span className="font-mono text-muted-foreground">
+              {formatDateTime(log.run_at)}
+            </span>
+            {log.added_count > 0 && (
+              <Badge variant="outline" className="border-emerald-500 text-emerald-700">
+                +{log.added_count} mới
+              </Badge>
+            )}
+            {log.updated_count > 0 && (
+              <Badge variant="outline" className="border-blue-500 text-blue-700">
+                ↻ {log.updated_count} cập nhật
+              </Badge>
+            )}
+            {log.removed_count > 0 && (
+              <Badge variant="outline" className="border-rose-500 text-rose-700">
+                −{log.removed_count} xóa
+              </Badge>
+            )}
+            {log.added_count === 0 &&
+              log.updated_count === 0 &&
+              log.removed_count === 0 && (
+                <span className="text-muted-foreground">Không thay đổi</span>
+              )}
+            <span className="ml-auto text-muted-foreground">
+              Tổng: {log.total_after} thủ tục
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

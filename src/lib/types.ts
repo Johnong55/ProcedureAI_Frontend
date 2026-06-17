@@ -283,9 +283,22 @@ export interface DocumentSource {
   crawl_status: CrawlStatus;
   processing_status: ProcessingStatus;
   last_crawled_at: string | null;
+  next_crawl_at: string | null;
   is_active: boolean;
   error_message: string | null;
   created_at: string;
+}
+
+export interface CrawlDiffLog {
+  id: string;
+  run_at: string;
+  added_count: number;
+  updated_count: number;
+  removed_count: number;
+  total_after: number;
+  added_codes: string[];
+  updated_codes: string[];
+  removed_codes: string[];
 }
 
 export interface DocumentSourceCreate {
