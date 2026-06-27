@@ -138,6 +138,9 @@ export interface FormGuideResponse {
 export interface ConversationTurn {
   role: "user" | "assistant";
   content: string;
+  // Phase 11.2: guest gửi section_type của assistant turn để BE inherit
+  // context khi user clarify follow-up.
+  section_type?: string | null;
 }
 
 export interface AskRequest {

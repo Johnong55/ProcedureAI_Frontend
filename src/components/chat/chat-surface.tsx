@@ -169,6 +169,8 @@ export function ChatSurface({
           .map((m) => ({
             role: m.role as "user" | "assistant",
             content: m.content,
+            // Phase 11.2: gửi section_type để BE inherit context khi user clarify
+            section_type: m.section_type,
           }));
         const res = await api.chat.ask({
           question: text,
