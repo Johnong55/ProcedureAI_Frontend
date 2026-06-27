@@ -40,6 +40,8 @@ export function ChatSurface({
   >({});
   // Phase 11: đang sinh hướng dẫn điền form nào — show spinner trên button.
   const [pendingFormGuideId, setPendingFormGuideId] = useState<string | null>(null);
+  // Fix B: đang fetch giấy tờ của trường hợp (case) nào — spinner trên case chip.
+  const [pendingCase, setPendingCase] = useState<string | null>(null);
   // Form đang preview ở side panel bên phải. null = panel ẩn.
   const [previewForm, setPreviewForm] = useState<FormItem | null>(null);
   // Dock chip ẩn mặc định — user click button "Xem nội dung khác" để mở.
@@ -282,6 +284,9 @@ export function ChatSurface({
           ts: Date.now() + 1,
           backend_message_id: res.message_id,
           section_type: res.section_type,
+          // Fix B: chooser trả về case_groups → render case chips trong message.
+          case_groups: res.case_groups,
+          selected_case: res.selected_case_group,
         };
 
         if (isAuthenticated) {
@@ -304,6 +309,76 @@ export function ChatSurface({
         toast.error("Không tải được nội dung mục này", { description: err });
       } finally {
         setPendingChipState(null);
+      }
+    },
+    [session, isAuthenticated, scrollToExistingMessage],
+  );
+
+  // ── Fix B: click 1 case chip → fetch giấy tờ riêng của trường hợp đó ──────
+  const handleSelectCase = useCallback(
+    async (procedureCode: string, caseGroup: string) => {
+      if (!session) return;
+      setPendingCase(caseGroup);
+      const t0 = performance.now();
+      try {
+        const res = await api.chat.section({
+          session_id: isAuthenticated ? session.backend_session_id : undefined,
+          procedure_code: procedureCode,
+          section_type: "requirements",
+          case_group: caseGroup,
+        });
+
+        // Idempotent: case đã xem trước → scroll tới nội dung cũ thay vì append.
+        if (res.is_reuse) {
+          const targetId = res.user_message_id || res.message_id;
+          if (!scrollToExistingMessage(targetId)) {
+            toast.info("Trường hợp này đã xem rồi", {
+              description: "Cuộn lên để xem giấy tờ.",
+            });
+          }
+          return;
+        }
+
+        const userChipMsg: ChatMessage = {
+          id: res.user_message_id || crypto.randomUUID(),
+          role: "user",
+          content: res.chip_label || caseGroup,
+          ts: Date.now(),
+          section_type: res.section_type,
+        };
+        const sectionMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: res.answer,
+          forms: res.forms,
+          latency_ms: res.latency_ms ?? performance.now() - t0,
+          ts: Date.now() + 1,
+          backend_message_id: res.message_id,
+          section_type: res.section_type,
+        };
+
+        if (isAuthenticated) {
+          setSession((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  messages: [...prev.messages, userChipMsg, sectionMsg],
+                  updatedAt: Date.now(),
+                }
+              : prev,
+          );
+        } else {
+          let next = sessionStore.appendMessage(session.id, userChipMsg);
+          next = sessionStore.appendMessage(session.id, sectionMsg);
+          setSession({ ...next });
+        }
+      } catch (e) {
+        const err = e instanceof Error ? e.message : String(e);
+        toast.error("Không tải được giấy tờ của trường hợp này", {
+          description: err,
+        });
+      } finally {
+        setPendingCase(null);
       }
     },
     [session, isAuthenticated, scrollToExistingMessage],
@@ -441,10 +516,28 @@ export function ChatSurface({
       }
       // ASSISTANT section message HOẶC USER chip-click message — cả 2 đều có
       // section_type set bởi BE / FE handler.
+      // Fix B: "requirements#2" (case cụ thể) vẫn coi là đã xem chip
+      // "requirements" → normalize bỏ phần sau "#".
       if (m.section_type && lastFocusMsgId) {
+        const base = m.section_type.split("#")[0] as SectionType;
         const list = (map[lastFocusMsgId] ??= []);
-        if (!list.includes(m.section_type)) list.push(m.section_type);
+        if (!list.includes(base)) list.push(base);
       }
+    }
+    return map;
+  })();
+
+  // Fix B: mỗi message thuộc procedure_focus (intro) gần nhất phía trên →
+  // dùng để case chip biết gọi /chat/section cho thủ tục nào.
+  const focusCodeByMsg = (() => {
+    const map: Record<string, string> = {};
+    if (!session) return map;
+    let lastCode = "";
+    for (const m of session.messages) {
+      if (m.role === "assistant" && m.procedure_focus) {
+        lastCode = m.procedure_focus.code;
+      }
+      map[m.id] = lastCode;
     }
     return map;
   })();
@@ -510,6 +603,11 @@ export function ChatSurface({
                     onRequestFormGuide={handleRequestFormGuide}
                     pendingFormGuideId={pendingFormGuideId}
                     onPreviewForm={setPreviewForm}
+                    onSelectCase={(cg) => {
+                      const code = focusCodeByMsg[m.id];
+                      if (code) handleSelectCase(code, cg);
+                    }}
+                    pendingCase={pendingCase}
                     isGuest={!isAuthenticated}
                   />
                 )}

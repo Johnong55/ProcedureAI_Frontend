@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText, Lock, Pencil, Eye } from "lucide-react";
+import { User2, Sparkles, AlertTriangle, Timer, FileDown, FileText, Lock, Pencil, Eye, Layers, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { ChatMessage, FormItem, Source } from "@/lib/types";
@@ -66,12 +66,17 @@ export const AssistantMessage = memo(function AssistantMessage({
   onRequestFormGuide,
   pendingFormGuideId,
   onPreviewForm,
+  onSelectCase,
+  pendingCase,
   isGuest = false,
 }: {
   msg: ChatMessage;
   onRequestFormGuide?: (form: FormItem) => void;
   pendingFormGuideId?: string | null;
   onPreviewForm?: (form: FormItem) => void;
+  // Fix B: user click 1 case chip trên message requirements multi-case.
+  onSelectCase?: (caseGroup: string) => void;
+  pendingCase?: string | null;
   isGuest?: boolean;
 }) {
   // Chỉ render các chunk_type CÓ GIÁ TRỊ HIỂN THỊ THÊM ngoài text:
@@ -119,6 +124,15 @@ export const AssistantMessage = memo(function AssistantMessage({
           dangerouslySetInnerHTML={{ __html: renderMarkdownLite(msg.content) }}
         />
 
+        {msg.case_groups && msg.case_groups.length > 0 && onSelectCase && (
+          <CaseChips
+            cases={msg.case_groups}
+            selected={msg.selected_case}
+            pending={pendingCase}
+            onSelect={onSelectCase}
+          />
+        )}
+
         {msg.forms && msg.forms.length > 0 && (
           <FormsList
             forms={msg.forms}
@@ -160,6 +174,53 @@ export const AssistantMessage = memo(function AssistantMessage({
     </div>
   );
 });
+
+// Fix B: chips chọn trường hợp hồ sơ cho thủ tục có nhiều case_group. Hiển
+// thị dưới message "chooser" — user click 1 case → fetch giấy tờ riêng case đó.
+function CaseChips({
+  cases,
+  selected,
+  pending,
+  onSelect,
+}: {
+  cases: string[];
+  selected?: string | null;
+  pending?: string | null;
+  onSelect: (caseGroup: string) => void;
+}) {
+  return (
+    <div className="mt-4 rounded-xl border-2 border-amber-300 bg-amber-50/70 p-3">
+      <div className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+        <Layers className="h-3.5 w-3.5" />
+        Chọn trường hợp đúng với bạn để xem giấy tờ
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {cases.map((c) => {
+          const isSelected = selected === c;
+          const isPending = pending === c;
+          return (
+            <button
+              key={c}
+              type="button"
+              disabled={isPending || isSelected}
+              onClick={() => onSelect(c)}
+              className={[
+                "inline-flex items-center gap-1.5 rounded-lg border-2 px-3 py-2 text-left text-sm font-medium transition active:scale-95",
+                isSelected
+                  ? "cursor-default border-amber-500 bg-amber-500 text-white shadow-sm"
+                  : "border-amber-300 bg-white text-amber-800 shadow-sm hover:border-amber-400 hover:bg-amber-100",
+                isPending ? "cursor-wait opacity-70" : "",
+              ].join(" ")}
+            >
+              {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {c}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function FormsList({
   forms,

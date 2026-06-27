@@ -70,7 +70,9 @@ export type SectionType =
   | "agency"
   | "forms"
   | "other_procedures"
-  | `form_guide:${string}`;
+  | `form_guide:${string}`
+  // Fix B: section_type động per-case của requirements (vd "requirements#2").
+  | `requirements#${string}`;
 
 export interface ProcedureFocus {
   code: string;
@@ -97,6 +99,8 @@ export interface SectionRequest {
   session_id?: string;
   procedure_code: string;
   section_type: SectionType;
+  // Fix B: trường hợp hồ sơ user chọn khi click case chip (chỉ requirements).
+  case_group?: string;
 }
 
 export interface SectionResponse {
@@ -110,6 +114,9 @@ export interface SectionResponse {
   section_type: SectionType;
   latency_ms: number;
   is_reuse?: boolean;
+  // Fix B: các trường hợp hồ sơ để FE render case chips (chỉ chooser mới có).
+  case_groups?: string[];
+  selected_case_group?: string | null;
 }
 
 // Phase 11 — hướng dẫn điền 1 biểu mẫu cụ thể
@@ -167,6 +174,10 @@ export interface ChatMessage {
   procedure_focus?: ProcedureFocus | null;
   // Đánh dấu message section (từ click chip) — UI có thể style khác intro.
   section_type?: SectionType;
+  // Fix B: case chips cho message requirements multi-case. case_groups có giá
+  // trị → render chips để user chọn trường hợp. selected_case = case đang xem.
+  case_groups?: string[];
+  selected_case?: string | null;
 }
 
 export interface ChatSession {
@@ -206,6 +217,9 @@ export interface BackendMessage {
   forms?: FormItem[];
   procedure_focus?: ProcedureFocus | null;
   section_type?: SectionType | null;
+  // Fix B: re-derive khi load history → render lại case chips cho chooser.
+  case_groups?: string[];
+  selected_case_group?: string | null;
 }
 
 export interface SessionHistoryResponse {

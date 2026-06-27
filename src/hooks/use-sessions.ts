@@ -130,6 +130,8 @@ export function useSessionDetail(sessionId: string | undefined): {
         backend_message_id: m.id,
         procedure_focus: m.procedure_focus,
         section_type: m.section_type as SectionType | undefined,
+        case_groups: m.case_groups,
+        selected_case: m.selected_case_group,
       })),
       locality: data.session.locality_filter || undefined,
       domain: data.session.domain_filter || undefined,
